@@ -368,7 +368,7 @@ async function createOrUpdateFile(config, path, content, message) {
 function generateCommitMessage(submission) {
     const { runtime, runtimePercentile, memory, memoryPercentile } = submission;
 
-    // Format: "Time: 2 ms (98.9%), Space: 45 MB (20.58%) - LeetHub"
+    // Format: "Time: 2 ms (98.9%), Space: 45 MB (20.58%) - CodeTrail"
     let parts = [];
 
     if (runtime && runtimePercentile) {
@@ -384,10 +384,10 @@ function generateCommitMessage(submission) {
     }
 
     if (parts.length > 0) {
-        return `${parts.join(', ')} - LeetHub`;
+        return `${parts.join(', ')} - CodeTrail`;
     }
 
-    return 'Sync solution - LeetHub';
+    return 'Sync solution - CodeTrail';
 }
 
 /**
@@ -693,7 +693,7 @@ async function updateMainReadme(config, newSubmission) {
         const readmeContent = generateMainReadme(problemIndex, config.repo);
 
         // Update README.md in repo
-        await createOrUpdateFile(config, 'README.md', readmeContent, 'Update README Topic Tags - LeetHub');
+        await createOrUpdateFile(config, 'README.md', readmeContent, 'Update README Topic Tags - CodeTrail');
 
         console.log('LeetHub: Main README updated successfully');
     } catch (error) {
@@ -763,7 +763,7 @@ function generateMainReadme(problemIndex, repoName) {
     // Build README content - simple format like user's example
     let content = `# ${repoName || 'Leetcode-Answers'}
 
-A collection of LeetCode questions to ace the coding interview! - Created using [LeetHub v2](https://github.com/QasimWani/LeetHub)
+A collection of LeetCode questions to ace the coding interview! - Synced using [CodeTrail](https://github.com/ThivakarSP/CodeTrail)
 
 ## LeetCode Topics
 
