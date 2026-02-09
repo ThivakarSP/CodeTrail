@@ -1,0 +1,18 @@
+# LeetHub Extension .gitignore
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+
+# Build artifacts
+node_modules/
+dist/
+*.zip

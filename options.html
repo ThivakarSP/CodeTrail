@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LeetHub Settings</title>
+    <link rel="stylesheet" href="options.css">
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <span class="logo-icon">⚡</span>
+                <h1>LeetHub Settings</h1>
+            </div>
+        </header>
+
+        <main>
+            <section class="card">
+                <h2>🔗 GitHub Connection</h2>
+                <p class="description">Connect your GitHub account to sync your LeetCode solutions.</p>
+
+                <form id="settingsForm">
+                    <div class="form-group">
+                        <label for="username">GitHub Username</label>
+                        <input type="text" id="username" placeholder="e.g., octocat" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="repo">Repository Name</label>
+                        <input type="text" id="repo" placeholder="e.g., LeetCode-Solutions" required>
+                        <span class="hint">Must be an existing repository</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="token">Personal Access Token</label>
+                        <div class="input-with-toggle">
+                            <input type="password" id="token" placeholder="ghp_xxxxxxxxxxxx" required>
+                            <button type="button" class="toggle-visibility" id="toggleToken">👁️</button>
+                        </div>
+                        <span class="hint">Needs <code>repo</code> scope permissions</span>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary" id="saveBtn">
+                            <span class="btn-text">Save Settings</span>
+                        </button>
+                        <button type="button" class="btn-secondary" id="testBtn">
+                            Test Connection
+                        </button>
+                    </div>
+                </form>
+
+                <div class="status-message" id="statusMessage"></div>
+            </section>
+
+            <section class="card">
+                <h2>🔑 How to Get a GitHub Token</h2>
+                <ol class="instructions">
+                    <li>Go to <a href="https://github.com/settings/tokens" target="_blank">GitHub Settings → Personal
+                            Access Tokens</a></li>
+                    <li>Click <strong>"Generate new token (classic)"</strong></li>
+                    <li>Give it a name like <code>LeetHub Extension</code></li>
+                    <li>Set expiration (recommended: 90 days or more)</li>
+                    <li>Check the <strong><code>repo</code></strong> scope (full repository access)</li>
+                    <li>Click <strong>"Generate token"</strong></li>
+                    <li>Copy the token immediately (it won't be shown again!)</li>
+                </ol>
+
+                <div class="warning-box">
+                    ⚠️ <strong>Keep your token secure!</strong> Never share it with anyone.
+                    Your token is stored locally in your browser and never sent anywhere except GitHub.
+                </div>
+            </section>
+
+            <section class="card">
+                <h2>📁 Repository Setup</h2>
+                <p>Create an empty repository on GitHub before connecting:</p>
+                <ol class="instructions">
+                    <li>Go to <a href="https://github.com/new" target="_blank">GitHub → New Repository</a></li>
+                    <li>Name it <code>LeetCode-Solutions</code> (or any name you prefer)</li>
+                    <li>Keep it public or private (both work)</li>
+                    <li>Initialize with a README (recommended)</li>
+                    <li>Click <strong>"Create repository"</strong></li>
+                </ol>
+            </section>
+
+            <section class="card danger-zone">
+                <h2>🗑️ Clear Data</h2>
+                <p>Remove all stored settings and sync history.</p>
+                <button type="button" class="btn-danger" id="clearBtn">Clear All Data</button>
+            </section>
+        </main>
+
+        <footer>
+            <p>LeetHub v1.0.0 • Made with ❤️ for LeetCoders</p>
+        </footer>
+    </div>
+
+    <script src="options.js"></script>
+</body>
+
+</html>

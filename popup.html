@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LeetHub</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+
+<body>
+  <div class="container">
+    <header>
+      <div class="logo">
+        <span class="logo-icon">⚡</span>
+        <h1>LeetHub</h1>
+      </div>
+      <div class="status-indicator" id="statusIndicator">
+        <span class="status-dot"></span>
+        <span class="status-text">Checking...</span>
+      </div>
+    </header>
+
+    <main>
+      <section class="config-status" id="configStatus">
+        <div class="config-card" id="configCard">
+          <div class="config-icon">⚙️</div>
+          <div class="config-info">
+            <h3>Not Configured</h3>
+            <p>Set up your GitHub connection</p>
+          </div>
+          <button class="btn-configure" id="openOptions">Configure</button>
+        </div>
+      </section>
+
+      <!-- Stats Section -->
+      <section class="stats-section" id="statsSection">
+        <h2>📊 Your Progress</h2>
+        <div class="stats-grid">
+          <div class="stat-card stat-total">
+            <span class="stat-value" id="statTotal">0</span>
+            <span class="stat-label">Total</span>
+          </div>
+          <div class="stat-card stat-easy">
+            <span class="stat-value" id="statEasy">0</span>
+            <span class="stat-label">Easy</span>
+          </div>
+          <div class="stat-card stat-medium">
+            <span class="stat-value" id="statMedium">0</span>
+            <span class="stat-label">Medium</span>
+          </div>
+          <div class="stat-card stat-hard">
+            <span class="stat-value" id="statHard">0</span>
+            <span class="stat-label">Hard</span>
+          </div>
+        </div>
+        <button class="btn-reset-stats" id="resetStats" title="Reset statistics">🔄 Reset Stats</button>
+      </section>
+
+      <section class="toggle-section">
+        <label class="toggle-label">
+          <span>Extension Active</span>
+          <div class="toggle-switch">
+            <input type="checkbox" id="enableToggle" checked>
+            <span class="toggle-slider"></span>
+          </div>
+        </label>
+      </section>
+
+      <section class="history-section">
+        <h2>Recent Syncs</h2>
+        <div class="history-list" id="historyList">
+          <div class="empty-state">
+            <span class="empty-icon">📭</span>
+            <p>No synced problems yet</p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <a href="#" id="openOptionsLink">⚙️ Settings</a>
+      <a href="#" id="openRepoLink" class="repo-link" style="display: none;">📂 Open Repository</a>
+      <span class="version">v1.0.0</span>
+    </footer>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+
+</html>
