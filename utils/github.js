@@ -264,10 +264,16 @@ async function createOrUpdateFile(config, path, content, message) {
     // Check if file exists and get SHA
     const sha = await getFileSha(config, path);
 
-    // Improved UTF-8 to Base64 encoding
-    const encoder = new TextEncoder();
-    const uint8Array = encoder.encode(content);
-    const base64Content = btoa(String.fromCharCode(...uint8Array));
+    // Proper UTF-8 to Base64 encoding (handles emojis correctly)
+    const utf8Bytes = new TextEncoder().encode(content);
+    let binaryString = '';
+    // Process in chunks to avoid stack overflow for large files
+    const chunkSize = 8192;
+    for (let i = 0; i < utf8Bytes.length; i += chunkSize) {
+        const chunk = utf8Bytes.slice(i, i + chunkSize);
+        binaryString += String.fromCharCode.apply(null, chunk);
+    }
+    const base64Content = btoa(binaryString);
 
     const body = {
         message: message,
@@ -574,9 +580,17 @@ ${description || ''}
  * @returns {string}
  */
 function appendVersionToReadme(existingContent, submission, version) {
-    const date = submission.timestamp
-        ? new Date(submission.timestamp * 1000).toLocaleDateString()
-        : new Date().toLocaleDateString();
+    // Handle timestamp - detect if it's in seconds or milliseconds
+    let date;
+    if (submission.timestamp) {
+        // If timestamp is less than 10 billion, it's in seconds; otherwise milliseconds
+        const ts = submission.timestamp < 10000000000
+            ? submission.timestamp * 1000
+            : submission.timestamp;
+        date = new Date(ts).toLocaleDateString();
+    } else {
+        date = new Date().toLocaleDateString();
+    }
 
     // Build new version section
     let versionSection = `\n---\n\n## Version ${version}\n\n`;
