@@ -836,6 +836,88 @@
     }
 
     /**
+     * Format problem content from HTML to proper markdown
+     * Handles: code blocks, examples, images, and proper spacing
+     */
+    function formatProblemContent(htmlContent) {
+        if (!htmlContent) return '*Problem description not available*';
+
+        let content = htmlContent;
+
+        // Extract and preserve images first
+        const images = [];
+        content = content.replace(/<img[^>]+src=["']([^"']+)["'][^>]*>/gi, (match, src) => {
+            const placeholder = `__IMAGE_${images.length}__`;
+            images.push(src);
+            return placeholder;
+        });
+
+        // Convert <pre> blocks to markdown code blocks
+        content = content.replace(/<pre[^>]*>([\s\S]*?)<\/pre>/gi, (match, code) => {
+            const cleanCode = code
+                .replace(/<[^>]*>/g, '')
+                .replace(/&nbsp;/g, ' ')
+                .replace(/&lt;/g, '<')
+                .replace(/&gt;/g, '>')
+                .replace(/&amp;/g, '&')
+                .trim();
+            return '\n```\n' + cleanCode + '\n```\n';
+        });
+
+        // Convert <code> to inline code
+        content = content.replace(/<code[^>]*>(.*?)<\/code>/gi, '`$1`');
+
+        // Handle strong/bold
+        content = content.replace(/<strong[^>]*>(.*?)<\/strong>/gi, '**$1**');
+        content = content.replace(/<b[^>]*>(.*?)<\/b>/gi, '**$1**');
+
+        // Handle emphasis/italic
+        content = content.replace(/<em[^>]*>(.*?)<\/em>/gi, '*$1*');
+        content = content.replace(/<i[^>]*>(.*?)<\/i>/gi, '*$1*');
+
+        // Handle lists
+        content = content.replace(/<ul[^>]*>/gi, '\n');
+        content = content.replace(/<\/ul>/gi, '\n');
+        content = content.replace(/<li[^>]*>(.*?)<\/li>/gi, '- $1\n');
+
+        // Handle paragraphs and line breaks
+        content = content.replace(/<p[^>]*>/gi, '\n');
+        content = content.replace(/<\/p>/gi, '\n');
+        content = content.replace(/<br\s*\/?>/gi, '\n');
+        content = content.replace(/<div[^>]*>/gi, '\n');
+        content = content.replace(/<\/div>/gi, '\n');
+
+        // Remove remaining HTML tags
+        content = content.replace(/<[^>]*>/g, '');
+
+        // Decode HTML entities
+        content = content
+            .replace(/&nbsp;/g, ' ')
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .replace(/&amp;/g, '&')
+            .replace(/&quot;/g, '"')
+            .replace(/&#39;/g, "'")
+            .replace(/&times;/g, '×')
+            .replace(/&le;/g, '≤')
+            .replace(/&ge;/g, '≥');
+
+        // Restore images as markdown
+        images.forEach((src, i) => {
+            content = content.replace(`__IMAGE_${i}__`, `\n![Example](${src})\n`);
+        });
+
+        // Clean up excessive whitespace while preserving structure
+        content = content
+            .replace(/\n{4,}/g, '\n\n\n')  // Max 3 newlines
+            .replace(/[ \t]+/g, ' ')        // Collapse horizontal spaces
+            .replace(/\n +/g, '\n')         // Remove leading spaces on lines
+            .trim();
+
+        return content;
+    }
+
+    /**
      * Generate README content with reference materials
      */
     function generateReadmeWithRefs(question, submission, references = {}) {
@@ -849,7 +931,11 @@
             ? question.topicTags.map(tag => `\`${tag.name}\``).join(' ')
             : '';
 
-        let readme = `# ${question.title}\n\n`;
+        // Build LeetCode URL
+        const leetcodeUrl = `https://leetcode.com/problems/${question.titleSlug}/`;
+
+        // Clickable heading linking to LeetCode
+        let readme = `# [${question.title}](${leetcodeUrl})\n\n`;
         readme += `**Difficulty**: ${difficultyBadge[question.difficulty] || question.difficulty}\n\n`;
 
         if (topicTags) {
@@ -864,20 +950,9 @@
         readme += `---\n\n`;
         readme += `## Problem\n\n`;
 
-        // Clean HTML from content
-        const cleanContent = question.content
-            ? question.content
-                .replace(/<[^>]*>/g, '')
-                .replace(/&nbsp;/g, ' ')
-                .replace(/&lt;/g, '<')
-                .replace(/&gt;/g, '>')
-                .replace(/&amp;/g, '&')
-                .replace(/&quot;/g, '"')
-                .replace(/&#39;/g, "'")
-                .trim()
-            : '*Problem description not available*';
-
-        readme += cleanContent + '\n\n';
+        // Format content with proper markdown
+        const formattedContent = formatProblemContent(question.content);
+        readme += formattedContent + '\n\n';
 
         readme += `---\n\n`;
         readme += `## Solution\n\n`;
