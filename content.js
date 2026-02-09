@@ -171,6 +171,143 @@
                 from { opacity: 0; transform: translateY(20px); }
                 to { opacity: 1; transform: translateY(0); }
             }
+            /* Sync Modal Styles */
+            .codetrail-modal-overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.7);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 99999;
+                animation: leethub-fadeIn 0.2s ease-out;
+            }
+            .codetrail-modal {
+                background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+                border-radius: 16px;
+                padding: 24px;
+                width: 480px;
+                max-width: 90vw;
+                max-height: 85vh;
+                overflow-y: auto;
+                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+            }
+            .codetrail-modal-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 20px;
+                padding-bottom: 16px;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            }
+            .codetrail-modal-title {
+                color: #ffa116;
+                font-size: 20px;
+                font-weight: 700;
+                margin: 0;
+            }
+            .codetrail-modal-close {
+                background: none;
+                border: none;
+                color: rgba(255, 255, 255, 0.6);
+                font-size: 24px;
+                cursor: pointer;
+                padding: 4px 8px;
+                border-radius: 4px;
+                transition: all 0.2s;
+            }
+            .codetrail-modal-close:hover {
+                color: #ef4743;
+                background: rgba(239, 71, 67, 0.1);
+            }
+            .codetrail-problem-info {
+                background: rgba(255, 161, 22, 0.1);
+                border: 1px solid rgba(255, 161, 22, 0.3);
+                border-radius: 8px;
+                padding: 12px;
+                margin-bottom: 20px;
+            }
+            .codetrail-problem-title {
+                color: #fff;
+                font-size: 16px;
+                font-weight: 600;
+                margin: 0 0 4px 0;
+            }
+            .codetrail-problem-meta {
+                color: rgba(255, 255, 255, 0.6);
+                font-size: 13px;
+            }
+            .codetrail-form-group {
+                margin-bottom: 16px;
+            }
+            .codetrail-label {
+                display: block;
+                color: rgba(255, 255, 255, 0.9);
+                font-size: 13px;
+                font-weight: 600;
+                margin-bottom: 6px;
+            }
+            .codetrail-input {
+                width: 100%;
+                padding: 10px 12px;
+                background: rgba(255, 255, 255, 0.05);
+                border: 1px solid rgba(255, 255, 255, 0.15);
+                border-radius: 8px;
+                color: #fff;
+                font-size: 14px;
+                transition: border-color 0.2s;
+            }
+            .codetrail-input:focus {
+                outline: none;
+                border-color: #ffa116;
+                background: rgba(255, 255, 255, 0.08);
+            }
+            .codetrail-input::placeholder {
+                color: rgba(255, 255, 255, 0.4);
+            }
+            .codetrail-textarea {
+                resize: vertical;
+                min-height: 80px;
+            }
+            .codetrail-hint {
+                color: rgba(255, 255, 255, 0.5);
+                font-size: 11px;
+                margin-top: 4px;
+            }
+            .codetrail-modal-actions {
+                display: flex;
+                gap: 12px;
+                margin-top: 24px;
+            }
+            .codetrail-btn {
+                flex: 1;
+                padding: 12px 20px;
+                border-radius: 8px;
+                font-size: 14px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.2s;
+                border: none;
+            }
+            .codetrail-btn-primary {
+                background: linear-gradient(135deg, #ffa116 0%, #ff8c00 100%);
+                color: #1a1a2e;
+            }
+            .codetrail-btn-primary:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 15px rgba(255, 161, 22, 0.4);
+            }
+            .codetrail-btn-secondary {
+                background: rgba(255, 255, 255, 0.1);
+                color: rgba(255, 255, 255, 0.8);
+            }
+            .codetrail-btn-secondary:hover {
+                background: rgba(255, 255, 255, 0.15);
+            }
         `;
         document.head.appendChild(style);
     }
@@ -222,6 +359,128 @@
         badge.textContent = message;
         document.body.appendChild(badge);
         setTimeout(() => badge.remove(), 5000);
+    }
+
+    /**
+     * Show sync modal for adding reference materials
+     * @param {Object} problemData - The problem data to sync
+     * @returns {Promise<Object|null>} - Returns enriched data or null if cancelled
+     */
+    function showSyncModal(problemData) {
+        return new Promise((resolve) => {
+            const overlay = document.createElement('div');
+            overlay.className = 'codetrail-modal-overlay';
+
+            const difficultyColors = {
+                'Easy': '#2cbb5d',
+                'Medium': '#ffa116',
+                'Hard': '#ef4743'
+            };
+            const diffColor = difficultyColors[problemData.difficulty] || '#888';
+
+            overlay.innerHTML = `
+                <div class="codetrail-modal">
+                    <div class="codetrail-modal-header">
+                        <h2 class="codetrail-modal-title">🚀 Sync to GitHub</h2>
+                        <button class="codetrail-modal-close" id="codetrail-close">&times;</button>
+                    </div>
+                    
+                    <div class="codetrail-problem-info">
+                        <p class="codetrail-problem-title">${problemData.title || problemData.problemTitle}</p>
+                        <p class="codetrail-problem-meta">
+                            <span style="color: ${diffColor}; font-weight: 600;">${problemData.difficulty}</span>
+                            &nbsp;•&nbsp; ${problemData.language || 'Unknown'}
+                            &nbsp;•&nbsp; Runtime: ${problemData.runtime || 'N/A'}
+                        </p>
+                    </div>
+                    
+                    <div class="codetrail-form-group">
+                        <label class="codetrail-label">📺 YouTube Video Link</label>
+                        <input type="url" id="codetrail-youtube" class="codetrail-input" 
+                            placeholder="https://youtube.com/watch?v=..." />
+                        <p class="codetrail-hint">Tutorial or explanation video for this problem</p>
+                    </div>
+                    
+                    <div class="codetrail-form-group">
+                        <label class="codetrail-label">💡 Approach / Algorithm</label>
+                        <input type="text" id="codetrail-approach" class="codetrail-input" 
+                            placeholder="e.g., Two Pointers, Dynamic Programming, BFS..." />
+                    </div>
+                    
+                    <div class="codetrail-form-group">
+                        <label class="codetrail-label">📝 Notes</label>
+                        <textarea id="codetrail-notes" class="codetrail-input codetrail-textarea" 
+                            placeholder="Key insights, edge cases, time/space complexity notes..."></textarea>
+                    </div>
+                    
+                    <div class="codetrail-form-group">
+                        <label class="codetrail-label">🔗 Additional References</label>
+                        <input type="text" id="codetrail-refs" class="codetrail-input" 
+                            placeholder="LeetCode discussion link, article URL, etc." />
+                    </div>
+                    
+                    <div class="codetrail-modal-actions">
+                        <button class="codetrail-btn codetrail-btn-secondary" id="codetrail-skip">
+                            Skip & Sync
+                        </button>
+                        <button class="codetrail-btn codetrail-btn-primary" id="codetrail-sync">
+                            ✓ Sync with References
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(overlay);
+
+            // Focus on first input
+            setTimeout(() => {
+                const youtubeInput = document.getElementById('codetrail-youtube');
+                if (youtubeInput) youtubeInput.focus();
+            }, 100);
+
+            // Close handlers
+            const closeModal = () => {
+                overlay.remove();
+                resolve(null);
+            };
+
+            // Skip handler (sync without references)
+            const skipSync = () => {
+                overlay.remove();
+                resolve({ ...problemData, references: {} });
+            };
+
+            // Sync with references handler
+            const syncWithRefs = () => {
+                const references = {
+                    youtube: document.getElementById('codetrail-youtube')?.value?.trim() || '',
+                    approach: document.getElementById('codetrail-approach')?.value?.trim() || '',
+                    notes: document.getElementById('codetrail-notes')?.value?.trim() || '',
+                    additionalRefs: document.getElementById('codetrail-refs')?.value?.trim() || ''
+                };
+                overlay.remove();
+                resolve({ ...problemData, references });
+            };
+
+            // Event listeners
+            document.getElementById('codetrail-close').addEventListener('click', closeModal);
+            document.getElementById('codetrail-skip').addEventListener('click', skipSync);
+            document.getElementById('codetrail-sync').addEventListener('click', syncWithRefs);
+
+            // Close on overlay click
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) closeModal();
+            });
+
+            // Close on Escape key
+            const escHandler = (e) => {
+                if (e.key === 'Escape') {
+                    closeModal();
+                    document.removeEventListener('keydown', escHandler);
+                }
+            };
+            document.addEventListener('keydown', escHandler);
+        });
     }
 
     // ============================================================
@@ -488,12 +747,23 @@
             runtimePercentile: details.runtimePercentile,
             memory: details.memoryDisplay,
             memoryPercentile: details.memoryPercentile,
-            timestamp: details.timestamp,
-            // Enhanced README generation
-            readme: generateReadme(question, details)
+            timestamp: details.timestamp
         };
 
-        await sendToBackground(problemData);
+        // Show modal for adding reference materials
+        console.log('CodeTrail: Showing sync modal...');
+        const enrichedData = await showSyncModal(problemData);
+
+        if (!enrichedData) {
+            console.log('CodeTrail: Sync cancelled by user');
+            syncedProblems.delete(problemSlug);
+            return;
+        }
+
+        // Generate README with references included
+        enrichedData.readme = generateReadmeWithRefs(question, details, enrichedData.references);
+
+        await sendToBackground(enrichedData);
     }
 
     /**
@@ -560,7 +830,100 @@
             ? new Date(submission.timestamp * 1000).toLocaleDateString()
             : new Date().toLocaleDateString();
         readme += `*Solved on: ${date}*\n`;
-        readme += `\n*Auto-synced by [LeetHub](https://github.com/QasimWani/LeetHub)*`;
+        readme += `\n*Auto-synced by [CodeTrail](https://github.com/ThivakarSP/CodeTrail)*`;
+
+        return readme;
+    }
+
+    /**
+     * Generate README content with reference materials
+     */
+    function generateReadmeWithRefs(question, submission, references = {}) {
+        const difficultyBadge = {
+            Easy: '🟢 Easy',
+            Medium: '🟡 Medium',
+            Hard: '🔴 Hard',
+        };
+
+        const topicTags = question.topicTags
+            ? question.topicTags.map(tag => `\`${tag.name}\``).join(' ')
+            : '';
+
+        let readme = `# ${question.title}\n\n`;
+        readme += `**Difficulty**: ${difficultyBadge[question.difficulty] || question.difficulty}\n\n`;
+
+        if (topicTags) {
+            readme += `**Topics**: ${topicTags}\n\n`;
+        }
+
+        // Add approach if provided
+        if (references.approach) {
+            readme += `**Approach**: ${references.approach}\n\n`;
+        }
+
+        readme += `---\n\n`;
+        readme += `## Problem\n\n`;
+
+        // Clean HTML from content
+        const cleanContent = question.content
+            ? question.content
+                .replace(/<[^>]*>/g, '')
+                .replace(/&nbsp;/g, ' ')
+                .replace(/&lt;/g, '<')
+                .replace(/&gt;/g, '>')
+                .replace(/&amp;/g, '&')
+                .replace(/&quot;/g, '"')
+                .replace(/&#39;/g, "'")
+                .trim()
+            : '*Problem description not available*';
+
+        readme += cleanContent + '\n\n';
+
+        readme += `---\n\n`;
+        readme += `## Solution\n\n`;
+        readme += `**Language**: ${submission.lang?.verboseName || submission.lang?.name || 'Unknown'}\n\n`;
+
+        if (submission.runtimeDisplay) {
+            readme += `**Runtime**: ${submission.runtimeDisplay}`;
+            if (submission.runtimePercentile) {
+                readme += ` (Beats ${submission.runtimePercentile.toFixed(2)}%)`;
+            }
+            readme += '\n\n';
+        }
+
+        if (submission.memoryDisplay) {
+            readme += `**Memory**: ${submission.memoryDisplay}`;
+            if (submission.memoryPercentile) {
+                readme += ` (Beats ${submission.memoryPercentile.toFixed(2)}%)`;
+            }
+            readme += '\n\n';
+        }
+
+        // Add references section if any provided
+        const hasRefs = references.youtube || references.notes || references.additionalRefs;
+        if (hasRefs) {
+            readme += `---\n\n`;
+            readme += `## References\n\n`;
+
+            if (references.youtube) {
+                readme += `📺 **Video Explanation**: [Watch on YouTube](${references.youtube})\n\n`;
+            }
+
+            if (references.notes) {
+                readme += `📝 **Notes**:\n${references.notes}\n\n`;
+            }
+
+            if (references.additionalRefs) {
+                readme += `🔗 **Additional Resources**: ${references.additionalRefs}\n\n`;
+            }
+        }
+
+        readme += `---\n\n`;
+        const date = submission.timestamp
+            ? new Date(submission.timestamp * 1000).toLocaleDateString()
+            : new Date().toLocaleDateString();
+        readme += `*Solved on: ${date}*\n`;
+        readme += `\n*Auto-synced by [CodeTrail](https://github.com/ThivakarSP/CodeTrail)*`;
 
         return readme;
     }
