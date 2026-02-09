@@ -182,6 +182,35 @@ async function getFileSha(config, path) {
 }
 
 /**
+ * Get file content from repository
+ * @param {Object} config - { username, repo, token }
+ * @param {string} path - File path in repo
+ * @returns {Promise<string>}
+ */
+async function getFileContent(config, path) {
+    const { username, repo, token } = config;
+    const branch = await getDefaultBranch(config);
+
+    const response = await fetch(
+        `https://api.github.com/repos/${username}/${repo}/contents/${path}?ref=${branch}`,
+        {
+            headers: {
+                'Authorization': `token ${token}`,
+                'Accept': 'application/vnd.github.v3+json'
+            }
+        }
+    );
+
+    if (!response.ok) {
+        throw new Error('File not found');
+    }
+
+    const data = await response.json();
+    // Decode base64 content
+    return atob(data.content.replace(/\n/g, ''));
+}
+
+/**
  * Get repository default branch with caching
  * @param {Object} config - { username, repo, token }
  * @returns {Promise<string>}
@@ -396,16 +425,29 @@ export async function pushToGitHub(config, submission) {
 
         await createOrUpdateFile(config, solutionPath, code, commitMsg);
 
-        // Create/Update README file (only on first submission)
-        if (version === 1) {
-            // Use readme from content.js if available (includes user's references)
-            // Otherwise fall back to generating one
-            const readmeContent = submission.readme || generateReadme(submission, folderName);
-            const readmePath = `${folderName}/README.md`;
-            const readmeCommitMsg = `Create README - CodeTrail`;
+        // Always update README file with version info and references
+        const readmePath = `${folderName}/README.md`;
+        let readmeContent;
 
-            await createOrUpdateFile(config, readmePath, readmeContent, readmeCommitMsg);
+        if (version === 1) {
+            // First version: use full readme from content.js or generate one
+            readmeContent = submission.readme || generateReadme(submission, folderName);
+        } else {
+            // Subsequent versions: fetch existing README and append new version info
+            try {
+                const existingContent = await getFileContent(config, readmePath);
+                readmeContent = appendVersionToReadme(existingContent, submission, version);
+            } catch (e) {
+                // If README doesn't exist for some reason, create it
+                readmeContent = submission.readme || generateReadme(submission, folderName);
+            }
         }
+
+        const readmeCommitMsg = version === 1
+            ? `Create README - CodeTrail`
+            : `Update README with v${version} - CodeTrail`;
+
+        await createOrUpdateFile(config, readmePath, readmeContent, readmeCommitMsg);
 
         // Update main README with topic index
         await updateMainReadme(config, submission);
@@ -521,6 +563,74 @@ function generateReadme(submission, folderName) {
 
 ${description || ''}
 `;
+}
+
+/**
+ * Append new version info to existing README
+ * Preserves existing references and adds new version's references
+ * @param {string} existingContent - Current README content
+ * @param {Object} submission - New submission data
+ * @param {number} version - Version number
+ * @returns {string}
+ */
+function appendVersionToReadme(existingContent, submission, version) {
+    const date = submission.timestamp
+        ? new Date(submission.timestamp * 1000).toLocaleDateString()
+        : new Date().toLocaleDateString();
+
+    // Build new version section
+    let versionSection = `\n---\n\n## Version ${version}\n\n`;
+    versionSection += `**Language**: ${submission.language || 'Unknown'}\n\n`;
+
+    if (submission.runtimeDisplay) {
+        versionSection += `**Runtime**: ${submission.runtimeDisplay}`;
+        if (submission.runtimePercentile) {
+            versionSection += ` (Beats ${submission.runtimePercentile.toFixed(2)}%)`;
+        }
+        versionSection += '\n\n';
+    }
+
+    if (submission.memoryDisplay) {
+        versionSection += `**Memory**: ${submission.memoryDisplay}`;
+        if (submission.memoryPercentile) {
+            versionSection += ` (Beats ${submission.memoryPercentile.toFixed(2)}%)`;
+        }
+        versionSection += '\n\n';
+    }
+
+    versionSection += `*Solved on: ${date}*\n`;
+
+    // Add new references if provided
+    const refs = submission.references || {};
+    const hasNewRefs = refs.youtube || refs.notes || refs.approach || refs.additionalRefs;
+
+    if (hasNewRefs) {
+        versionSection += `\n### References (v${version})\n\n`;
+
+        if (refs.approach) {
+            versionSection += `**Approach**: ${refs.approach}\n\n`;
+        }
+        if (refs.youtube) {
+            versionSection += `📺 **Video**: [Watch on YouTube](${refs.youtube})\n\n`;
+        }
+        if (refs.notes) {
+            versionSection += `📝 **Notes**:\n${refs.notes}\n\n`;
+        }
+        if (refs.additionalRefs) {
+            versionSection += `🔗 **Resources**: ${refs.additionalRefs}\n\n`;
+        }
+    }
+
+    // Find where to insert - before the footer line
+    const footerMatch = existingContent.match(/\n\*Auto-synced by \[CodeTrail\]/);
+
+    if (footerMatch) {
+        const insertPos = footerMatch.index;
+        return existingContent.slice(0, insertPos) + versionSection + existingContent.slice(insertPos);
+    }
+
+    // If no footer found, append at end
+    return existingContent + versionSection + '\n*Auto-synced by [CodeTrail](https://github.com/ThivakarSP/CodeTrail)*';
 }
 
 // getDifficultyColor removed - was unused
