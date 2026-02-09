@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "LeetHub - Sync to GitHub",
+  "name": "CodeTrail - Sync LeetCode to GitHub",
   "version": "1.0.0",
-  "description": "Automatically sync your LeetCode accepted submissions to GitHub with manual approval",
+  "description": "Automatically sync your LeetCode solutions to GitHub with topic-based organization",
   "permissions": [
     "storage",
     "notifications",
