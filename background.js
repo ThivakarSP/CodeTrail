@@ -78,30 +78,15 @@ async function handleSubmissionDetected(data, tabId) {
 
   if (!config.enabled) return;
 
-  const notificationId = `leethub-sync-${Date.now()}`;
-  pendingSubmissions.set(notificationId, {
+  // Since the modal already confirmed the sync, directly queue for processing
+  // No notification needed - modal handles user confirmation
+  submissionQueue.push({
     ...data,
     tabId,
     timestamp: Date.now()
   });
 
-  try {
-    await chrome.notifications.create(notificationId, {
-      type: 'basic',
-      iconUrl: chrome.runtime.getURL('icons/icon128.png'),
-      title: 'LeetHub: Submission Detected',
-      message: `Sync "${data.title}" to GitHub?`,
-      buttons: [
-        { title: 'Sync to GitHub' },
-        { title: 'Ignore' }
-      ],
-      priority: 2,
-      requireInteraction: false
-    });
-  } catch (error) {
-    console.error('LeetHub: Failed to create notification:', error);
-    pendingSubmissions.delete(notificationId);
-  }
+  processSubmissionQueue();
 }
 
 // Handle notification button clicks

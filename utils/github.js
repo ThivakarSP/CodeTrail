@@ -398,9 +398,11 @@ export async function pushToGitHub(config, submission) {
 
         // Create/Update README file (only on first submission)
         if (version === 1) {
-            const readmeContent = generateReadme(submission, folderName);
+            // Use readme from content.js if available (includes user's references)
+            // Otherwise fall back to generating one
+            const readmeContent = submission.readme || generateReadme(submission, folderName);
             const readmePath = `${folderName}/README.md`;
-            const readmeCommitMsg = `Create README - LeetHub`;
+            const readmeCommitMsg = `Create README - CodeTrail`;
 
             await createOrUpdateFile(config, readmePath, readmeContent, readmeCommitMsg);
         }
