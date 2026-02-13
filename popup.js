@@ -1,12 +1,10 @@
-// LeetHub Popup Script
+// CodeTrail Popup Script
 // Enhanced with stats display and repository link
+
+import { getConfig, getStats, resetStats, getSyncHistory, saveConfig } from './utils/storage.js';
 
 // Cached HTML escape element for performance
 const escapeElement = document.createElement('div');
-
-// Retry configuration
-const MAX_RETRIES = 3;
-const RETRY_DELAY_MS = 500;
 
 document.addEventListener('DOMContentLoaded', async () => {
     const statusIndicator = document.getElementById('statusIndicator');
@@ -25,9 +23,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     const statHard = document.getElementById('statHard');
 
     // Initialize UI
-    await loadConfig();
-    await loadStats();
-    await loadHistory();
+    try {
+        await renderConfig();
+        await renderStats();
+        await renderAnalytics();
+        await renderHistory();
+    } catch (error) {
+        console.error('CodeTrail: Error initializing popup:', error);
+    }
 
     // Event Listeners
     openOptionsBtn?.addEventListener('click', openOptionsPage);
@@ -37,14 +40,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     enableToggle?.addEventListener('change', async () => {
-        await saveEnabled(enableToggle.checked);
+        const config = await getConfig();
+        config.enabled = enableToggle.checked;
+        await saveConfig({ enabled: enableToggle.checked });
         updateStatusIndicator(enableToggle.checked);
     });
 
     resetStatsBtn?.addEventListener('click', async () => {
         if (confirm('Are you sure you want to reset your statistics? This cannot be undone.')) {
             await resetStats();
-            await loadStats();
+            await renderStats();
         }
     });
 
@@ -53,95 +58,101 @@ document.addEventListener('DOMContentLoaded', async () => {
         const config = await getConfig();
         if (config.username && config.repo) {
             chrome.tabs.create({
-                url: `https://github.com/${config.username}/${config.repo}`
+                url: `https://github.com/${config.username}/${config.repo}`,
             });
         }
     });
 
-    // Functions
-    async function loadConfig() {
-        try {
-            const config = await getConfig();
+    // Render Functions
+    async function renderConfig() {
+        const config = await getConfig();
 
-            if (config.token && config.username && config.repo) {
-                configCard.innerHTML = `
-                    <div class="config-icon">✓</div>
-                    <div class="config-info">
-                        <h3>Connected</h3>
-                        <p>${escapeHtml(config.username)}/${escapeHtml(config.repo)}</p>
-                    </div>
-                    <button class="btn-configure" id="openOptions">Settings</button>
-                `;
-                configCard.style.borderColor = 'rgba(0, 184, 163, 0.3)';
-                configCard.style.background = 'rgba(0, 184, 163, 0.1)';
-
-                // Show repo link
-                if (openRepoLink) {
-                    openRepoLink.style.display = 'inline';
-                }
-
-                // Re-attach event listener
-                document.getElementById('openOptions')?.addEventListener('click', openOptionsPage);
-            }
-
-            enableToggle.checked = config.enabled !== false;
-            updateStatusIndicator(enableToggle.checked);
-        } catch (error) {
-            console.error('Failed to load config:', error);
-        }
-    }
-
-    async function loadStats() {
-        try {
-            const stats = await getStats();
-
-            if (statTotal) statTotal.textContent = stats.total || 0;
-            if (statEasy) statEasy.textContent = stats.easy || 0;
-            if (statMedium) statMedium.textContent = stats.medium || 0;
-            if (statHard) statHard.textContent = stats.hard || 0;
-        } catch (error) {
-            console.error('Failed to load stats:', error);
-        }
-    }
-
-    async function loadHistory() {
-        try {
-            const history = await getHistory();
-
-            if (history.length === 0) {
-                historyList.innerHTML = `
-                    <div class="empty-state">
-                        <span class="empty-icon">📭</span>
-                        <p>No synced problems yet</p>
-                    </div>
-                `;
-                return;
-            }
-
-            historyList.innerHTML = history.slice(0, 10).map(item => `
-                <div class="history-item">
-                    <div class="history-main">
-                        <a href="${escapeHtml(item.url)}" target="_blank" class="history-title" title="${escapeHtml(item.title)}">
-                            ${escapeHtml(item.title)}
-                        </a>
-                        <div class="history-meta">
-                            <span class="difficulty ${getDifficultyClass(item.difficulty)}">${escapeHtml(item.difficulty)}</span>
-                            <span class="language">${escapeHtml(item.language)}</span>
-                            ${item.runtime ? `<span class="runtime">⏱ ${escapeHtml(item.runtime)}</span>` : ''}
-                        </div>
-                    </div>
-                    <span class="history-time">${formatTime(item.timestamp)}</span>
+        if (config.token && config.username && config.repo) {
+            configCard.innerHTML = `
+                <div class="config-icon"></div>
+                <div class="config-info">
+                    <h3>Connected</h3>
+                    <p>${escapeHtml(config.username)}/${escapeHtml(config.repo)}</p>
                 </div>
-            `).join('');
-        } catch (error) {
-            console.error('Failed to load history:', error);
+                <button class="btn-configure" id="openOptions">Settings</button>
+            `;
+
+            // Re-attach listener to new button
+            document.getElementById('openOptions')?.addEventListener('click', openOptionsPage);
+
+            openRepoLink.style.display = 'inline-block';
+        } else {
+            configCard.innerHTML = `
+                <div class="config-icon">⚠️</div>
+                <div class="config-info">
+                    <h3>Not Connected</h3>
+                    <p>Set up GitHub to start syncing</p>
+                </div>
+                <button class="btn-configure" id="openOptions">Connect</button>
+            `;
+            document.getElementById('openOptions')?.addEventListener('click', openOptionsPage);
+            openRepoLink.style.display = 'none';
+        }
+
+        if (enableToggle) {
+            enableToggle.checked = config.enabled;
+            updateStatusIndicator(config.enabled);
+        }
+    }
+
+    async function renderStats() {
+        const stats = await getStats();
+
+        statTotal.textContent = stats.total || 0;
+        statEasy.textContent = stats.easy || 0;
+        statMedium.textContent = stats.medium || 0;
+        statHard.textContent = stats.hard || 0;
+    }
+
+    async function renderAnalytics() {
+        // Dynamic import to avoid issues if utils/storage.js isn't fully updated in cache
+        const { getAnalytics } = await import('./utils/storage.js');
+        const analytics = await getAnalytics();
+
+        document.getElementById('statWeekly').textContent = analytics.weekly || 0;
+        document.getElementById('statMonthly').textContent = analytics.monthly || 0;
+        document.getElementById('statYearly').textContent = analytics.yearly || 0;
+    }
+
+    async function renderHistory() {
+        const history = await getSyncHistory();
+
+        if (history.length === 0) {
             historyList.innerHTML = `
                 <div class="empty-state">
-                    <span class="empty-icon">⚠️</span>
-                    <p>Failed to load history</p>
+                    <span class="empty-icon"></span>
+                    <p>No synced problems yet</p>
                 </div>
             `;
+            return;
         }
+
+        historyList.innerHTML = history
+            .map(
+                (item) => `
+            <div class="history-item">
+                <div class="history-main">
+                    <a href="${item.url}" target="_blank" class="history-title" title="${escapeHtml(item.title)}">
+                        ${item.number ? item.number + '. ' : ''}${escapeHtml(item.title)}
+                    </a>
+                    <div class="history-meta">
+                        <span class="difficulty ${getDifficultyClass(item.difficulty)}">${item.difficulty}</span>
+                        <span class="language">${item.language || ''}</span>
+                        ${item.runtime ? `<span class="runtime">Runtime: ${escapeHtml(item.runtime)}</span>` : ''}
+                    </div>
+                </div>
+                <div class="history-time" title="${new Date(item.timestamp).toLocaleString()}">
+                    ${formatTime(item.timestamp)}
+                </div>
+            </div>
+        `
+            )
+            .join('');
     }
 
     function updateStatusIndicator(enabled) {
@@ -163,84 +174,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         chrome.runtime.openOptionsPage();
     }
 
-    // API Functions with retry logic
-    async function getConfig() {
-        return retryOperation(async () => {
-            return new Promise((resolve) => {
-                chrome.storage.local.get(
-                    ['github_username', 'github_repo', 'github_token', 'extension_enabled'],
-                    (result) => {
-                        resolve({
-                            username: result.github_username || '',
-                            repo: result.github_repo || '',
-                            token: result.github_token || '',
-                            enabled: result.extension_enabled !== false
-                        });
-                    }
-                );
-            });
-        });
-    }
-
-    async function getStats() {
-        return retryOperation(async () => {
-            return new Promise((resolve) => {
-                chrome.runtime.sendMessage({ type: 'GET_STATS' }, (response) => {
-                    if (chrome.runtime.lastError) {
-                        console.warn('Stats fetch error:', chrome.runtime.lastError);
-                        resolve({ total: 0, easy: 0, medium: 0, hard: 0 });
-                        return;
-                    }
-                    resolve(response || { total: 0, easy: 0, medium: 0, hard: 0 });
-                });
-            });
-        });
-    }
-
-    async function resetStats() {
-        return new Promise((resolve) => {
-            chrome.runtime.sendMessage({ type: 'RESET_STATS' }, (response) => {
-                if (chrome.runtime.lastError) {
-                    console.warn('Stats reset error:', chrome.runtime.lastError);
-                }
-                resolve(response);
-            });
-        });
-    }
-
-    async function getHistory() {
-        return retryOperation(async () => {
-            return new Promise((resolve) => {
-                chrome.runtime.sendMessage({ type: 'GET_SYNC_HISTORY' }, (response) => {
-                    if (chrome.runtime.lastError) {
-                        console.warn('History fetch error:', chrome.runtime.lastError);
-                        resolve([]);
-                        return;
-                    }
-                    resolve(response || []);
-                });
-            });
-        });
-    }
-
-    async function saveEnabled(enabled) {
-        return new Promise((resolve) => {
-            chrome.storage.local.set({ extension_enabled: enabled }, resolve);
-        });
-    }
-
-    // Retry helper
-    async function retryOperation(operation, retries = MAX_RETRIES) {
-        for (let i = 0; i < retries; i++) {
-            try {
-                return await operation();
-            } catch (error) {
-                if (i === retries - 1) throw error;
-                await new Promise(r => setTimeout(r, RETRY_DELAY_MS * (i + 1)));
-            }
-        }
-    }
-
     // Utility Functions
     function escapeHtml(text) {
         if (!text) return '';
@@ -250,10 +183,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function getDifficultyClass(difficulty) {
         switch (difficulty?.toLowerCase()) {
-            case 'easy': return 'easy';
-            case 'medium': return 'medium';
-            case 'hard': return 'hard';
-            default: return '';
+            case 'easy':
+                return 'easy';
+            case 'medium':
+                return 'medium';
+            case 'hard':
+                return 'hard';
+            default:
+                return '';
         }
     }
 

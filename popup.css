@@ -1,4 +1,4 @@
-/* LeetHub Popup Styles */
+/* CodeTrail Popup Styles */
 
 * {
   margin: 0;
@@ -10,8 +10,17 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
   color: #ffffff;
-  min-width: 320px;
-  max-width: 320px;
+  min-width: 350px;
+  width: 350px;
+  min-height: 450px;
+  overflow-x: hidden;
+}
+
+.header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
 }
 
 .container {
@@ -27,6 +36,14 @@ header {
   padding-bottom: 12px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
+
+.header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
 
 .logo {
   display: flex;
@@ -111,7 +128,9 @@ header {
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
 }
 
 .btn-configure:hover {
@@ -179,6 +198,39 @@ header {
 
 .stat-hard .stat-value {
   color: #ff375f;
+}
+
+/* Velocity Stats */
+.velocity-section {
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.velocity-grid {
+  display: flex;
+  justify-content: space-between;
+  text-align: center;
+}
+
+.stat-mini {
+  flex: 1;
+}
+
+.stat-value-mini {
+  display: block;
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 2px;
+}
+
+.stat-label-mini {
+  display: block;
+  font-size: 10px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.5);
+  letter-spacing: 0.3px;
 }
 
 .btn-reset-stats {
@@ -251,7 +303,7 @@ header {
 
 .toggle-slider:before {
   position: absolute;
-  content: "";
+  content: '';
   height: 18px;
   width: 18px;
   left: 3px;
@@ -273,7 +325,7 @@ input:checked+.toggle-slider:before {
 .history-section h2 {
   font-size: 13px;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.7);
+  color: #ffffff;
   margin-bottom: 10px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -337,6 +389,13 @@ input:checked+.toggle-slider:before {
   overflow: hidden;
   text-overflow: ellipsis;
   margin-bottom: 4px;
+  color: #ffffff;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.history-title:hover {
+  color: #ffa116;
 }
 
 .history-meta {

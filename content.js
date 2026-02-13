@@ -1,4 +1,4 @@
-// LeetHub Content Script
+// CodeTrail Content Script
 // Detects accepted submissions and triggers background notification
 // Enhanced with GraphQL API for accurate submission details
 
@@ -6,44 +6,36 @@
     'use strict';
 
     // Prevent multiple injections
-    if (window.leetHubInjected) return;
-    window.leetHubInjected = true;
+    if (window.codeTrailInjected) return;
+    window.codeTrailInjected = true;
 
-    console.log('LeetHub: Content script loaded (v7 - GraphQL Enhanced)');
+    console.log('CodeTrail: Content script loaded (v7 - GraphQL Enhanced)');
 
     // ============================================================
     // CONSTANTS AND CONFIG
     // ============================================================
 
-    /** Enum for languages supported by LeetCode with file extensions */
-    const languages = Object.freeze({
-        C: '.c',
-        'C++': '.cpp',
-        'C#': '.cs',
-        Dart: '.dart',
-        Elixir: '.ex',
-        Erlang: '.erl',
-        Go: '.go',
-        Java: '.java',
-        JavaScript: '.js',
-        Javascript: '.js',
-        Kotlin: '.kt',
-        MySQL: '.sql',
-        'MS SQL Server': '.sql',
-        Oracle: '.sql',
-        Pandas: '.py',
-        PHP: '.php',
-        PostgreSQL: '.sql',
-        Python: '.py',
-        Python3: '.py',
-        Racket: '.rkt',
-        Ruby: '.rb',
-        Rust: '.rs',
-        Scala: '.scala',
-        Swift: '.swift',
-        TypeScript: '.ts',
-        Typescript: '.ts',
-    });
+    // Dynamic Module Import for Content Scripts
+    (async () => {
+        try {
+            const src = chrome.runtime.getURL('utils/constants.js');
+            const { LANGUAGES, SELECTORS } = await import(src);
+
+            // Proceed with initialization once modules are loaded
+            init(LANGUAGES, SELECTORS);
+        } catch (e) {
+            console.error('LeetHub: Failed to load modules:', e);
+        }
+    })();
+
+    // Helper to pass constants to remaining scope or attach to window
+    // Ideally refactor init() to accept them
+
+    // ============================================================
+    // CONSTANTS AND CONFIG
+    // ============================================================
+
+    // We'll initialize these inside init() or pass them down
 
     /** GraphQL query for submission details */
     const SUBMISSION_DETAILS_QUERY = `
@@ -87,480 +79,416 @@
     let observer = null;
     let spinnerElement = null;
 
+    // Module-scoped constants (populated by init)
+    let LANGUAGES = {};
+    let SELECTORS = {};
+
     // ============================================================
     // INITIALIZATION
     // ============================================================
 
-    function init() {
+    function init(languagesMap, selectorsMap) {
+        // Prevent multiple injections
+        LANGUAGES = languagesMap;
+        SELECTORS = selectorsMap;
+
+        console.log('CodeTrail: Content script loaded (v10 - Fixed)');
+
         observePageAttributes();
+        injectModal();
+        setupMessageListener();
+
+        // Setup other observers
         setupCleanup();
         observeURLChanges();
-        injectStyles();
-    }
 
-    /**
-     * Inject CSS for spinner overlay
-     */
-    function injectStyles() {
-        const style = document.createElement('style');
-        style.textContent = `
-            .leethub-spinner-overlay {
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(0, 0, 0, 0.5);
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                z-index: 99999;
-            }
-            .leethub-spinner {
-                width: 60px;
-                height: 60px;
-                border: 5px solid rgba(255, 255, 255, 0.3);
-                border-top: 5px solid #ffa116;
-                border-radius: 50%;
-                animation: leethub-spin 1s linear infinite;
-            }
-            .leethub-spinner-text {
-                color: white;
-                margin-top: 20px;
-                font-size: 16px;
-                text-align: center;
-            }
-            .leethub-spinner-container {
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-            }
-            @keyframes leethub-spin {
-                0% { transform: rotate(0deg); }
-                100% { transform: rotate(360deg); }
-            }
-            .leethub-success-badge {
-                position: fixed;
-                bottom: 20px;
-                right: 20px;
-                background: #2cbb5d;
-                color: white;
-                padding: 12px 20px;
-                border-radius: 8px;
-                font-size: 14px;
-                font-weight: 600;
-                z-index: 99999;
-                animation: leethub-fadeIn 0.3s ease-in-out;
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-            }
-            .leethub-error-badge {
-                position: fixed;
-                bottom: 20px;
-                right: 20px;
-                background: #ef4743;
-                color: white;
-                padding: 12px 20px;
-                border-radius: 8px;
-                font-size: 14px;
-                font-weight: 600;
-                z-index: 99999;
-                animation: leethub-fadeIn 0.3s ease-in-out;
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-            }
-            @keyframes leethub-fadeIn {
-                from { opacity: 0; transform: translateY(20px); }
-                to { opacity: 1; transform: translateY(0); }
-            }
-            /* Sync Modal Styles */
-            .codetrail-modal-overlay {
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(0, 0, 0, 0.7);
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                z-index: 99999;
-                animation: leethub-fadeIn 0.2s ease-out;
-            }
-            .codetrail-modal {
-                background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-                border-radius: 16px;
-                padding: 24px;
-                width: 480px;
-                max-width: 90vw;
-                max-height: 85vh;
-                overflow-y: auto;
-                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-                border: 1px solid rgba(255, 255, 255, 0.1);
-            }
-            .codetrail-modal-header {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: 20px;
-                padding-bottom: 16px;
-                border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            }
-            .codetrail-modal-title {
-                color: #ffa116;
-                font-size: 20px;
-                font-weight: 700;
-                margin: 0;
-            }
-            .codetrail-modal-close {
-                background: none;
-                border: none;
-                color: rgba(255, 255, 255, 0.6);
-                font-size: 24px;
-                cursor: pointer;
-                padding: 4px 8px;
-                border-radius: 4px;
-                transition: all 0.2s;
-            }
-            .codetrail-modal-close:hover {
-                color: #ef4743;
-                background: rgba(239, 71, 67, 0.1);
-            }
-            .codetrail-problem-info {
-                background: rgba(255, 161, 22, 0.1);
-                border: 1px solid rgba(255, 161, 22, 0.3);
-                border-radius: 8px;
-                padding: 12px;
-                margin-bottom: 20px;
-            }
-            .codetrail-problem-title {
-                color: #fff;
-                font-size: 16px;
-                font-weight: 600;
-                margin: 0 0 4px 0;
-            }
-            .codetrail-problem-meta {
-                color: rgba(255, 255, 255, 0.6);
-                font-size: 13px;
-            }
-            .codetrail-form-group {
-                margin-bottom: 16px;
-            }
-            .codetrail-label {
-                display: block;
-                color: rgba(255, 255, 255, 0.9);
-                font-size: 13px;
-                font-weight: 600;
-                margin-bottom: 6px;
-            }
-            .codetrail-input {
-                width: 100%;
-                padding: 10px 12px;
-                background: rgba(255, 255, 255, 0.05);
-                border: 1px solid rgba(255, 255, 255, 0.15);
-                border-radius: 8px;
-                color: #fff;
-                font-size: 14px;
-                transition: border-color 0.2s;
-            }
-            .codetrail-input:focus {
-                outline: none;
-                border-color: #ffa116;
-                background: rgba(255, 255, 255, 0.08);
-            }
-            .codetrail-input::placeholder {
-                color: rgba(255, 255, 255, 0.4);
-            }
-            .codetrail-textarea {
-                resize: vertical;
-                min-height: 80px;
-            }
-            .codetrail-hint {
-                color: rgba(255, 255, 255, 0.5);
-                font-size: 11px;
-                margin-top: 4px;
-            }
-            .codetrail-modal-actions {
-                display: flex;
-                gap: 12px;
-                margin-top: 24px;
-            }
-            .codetrail-btn {
-                flex: 1;
-                padding: 12px 20px;
-                border-radius: 8px;
-                font-size: 14px;
-                font-weight: 600;
-                cursor: pointer;
-                transition: all 0.2s;
-                border: none;
-            }
-            .codetrail-btn-primary {
-                background: linear-gradient(135deg, #ffa116 0%, #ff8c00 100%);
-                color: #1a1a2e;
-            }
-            .codetrail-btn-primary:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 4px 15px rgba(255, 161, 22, 0.4);
-            }
-            .codetrail-btn-secondary {
-                background: rgba(255, 255, 255, 0.1);
-                color: rgba(255, 255, 255, 0.8);
-            }
-            .codetrail-btn-secondary:hover {
-                background: rgba(255, 255, 255, 0.15);
-            }
-        `;
-        document.head.appendChild(style);
-    }
-
-    /**
-     * Show loading spinner overlay
-     */
-    function showSpinner(message = 'Syncing to GitHub...') {
-        if (spinnerElement) return;
-
-        spinnerElement = document.createElement('div');
-        spinnerElement.className = 'leethub-spinner-overlay';
-        spinnerElement.innerHTML = `
-            <div class="leethub-spinner-container">
-                <div class="leethub-spinner"></div>
-                <div class="leethub-spinner-text">${message}</div>
-            </div>
-        `;
-        document.body.appendChild(spinnerElement);
-    }
-
-    /**
-     * Hide loading spinner overlay
-     */
-    function hideSpinner() {
-        if (spinnerElement) {
-            spinnerElement.remove();
-            spinnerElement = null;
+        // Check for existing submission on load
+        if (window.location.pathname.includes('/submissions/')) {
+            setTimeout(checkForAcceptedStatus, 2000);
         }
     }
 
-    /**
-     * Show success badge
-     */
-    function showSuccessBadge(message = '✓ Synced to GitHub') {
-        const badge = document.createElement('div');
-        badge.className = 'leethub-success-badge';
-        badge.textContent = message;
-        document.body.appendChild(badge);
-        setTimeout(() => badge.remove(), 3000);
-    }
+    // ============================================================
+    // UI & NOTIFICATIONS
+    // ============================================================
 
-    /**
-     * Show error badge
-     */
-    function showErrorBadge(message = '✗ Sync failed') {
-        const badge = document.createElement('div');
-        badge.className = 'leethub-error-badge';
-        badge.textContent = message;
-        document.body.appendChild(badge);
-        setTimeout(() => badge.remove(), 5000);
-    }
+    function injectModal() {
+        // Always remove old modal to ensure updates apply
+        const oldModal = document.getElementById('codetrail-modal');
+        if (oldModal) {
+            oldModal.remove();
+        }
 
-    /**
-     * Show sync modal for adding reference materials
-     * @param {Object} problemData - The problem data to sync
-     * @returns {Promise<Object|null>} - Returns enriched data or null if cancelled
-     */
-    function showSyncModal(problemData) {
-        return new Promise((resolve) => {
-            const overlay = document.createElement('div');
-            overlay.className = 'codetrail-modal-overlay';
+        // Get saved position
+        chrome.storage.local.get(['codetrail_modal_pos'], (result) => {
+            const pos = result.codetrail_modal_pos;
+            const modal = document.createElement('div');
+            modal.id = 'codetrail-modal';
 
-            const difficultyColors = {
-                'Easy': '#2cbb5d',
-                'Medium': '#ffa116',
-                'Hard': '#ef4743'
-            };
-            const diffColor = difficultyColors[problemData.difficulty] || '#888';
+            // Default center styles
+            let top = '50%';
+            let left = '50%';
+            let transform = 'translate(-50%, -50%)';
 
-            overlay.innerHTML = `
-                <div class="codetrail-modal">
-                    <div class="codetrail-modal-header">
-                        <h2 class="codetrail-modal-title">🚀 Sync to GitHub</h2>
-                        <button class="codetrail-modal-close" id="codetrail-close">&times;</button>
-                    </div>
-                    
-                    <div class="codetrail-problem-info">
-                        <p class="codetrail-problem-title">${problemData.title || problemData.problemTitle}</p>
-                        <p class="codetrail-problem-meta">
-                            <span style="color: ${diffColor}; font-weight: 600;">${problemData.difficulty}</span>
-                            &nbsp;•&nbsp; ${problemData.language || 'Unknown'}
-                            &nbsp;•&nbsp; Runtime: ${problemData.runtime || 'N/A'}
-                        </p>
-                    </div>
-                    
-                    <div class="codetrail-form-group">
-                        <label class="codetrail-label">📺 YouTube Video Link</label>
-                        <input type="url" id="codetrail-youtube" class="codetrail-input" 
-                            placeholder="https://youtube.com/watch?v=..." />
-                        <p class="codetrail-hint">Tutorial or explanation video for this problem</p>
-                    </div>
-                    
-                    <div class="codetrail-form-group">
-                        <label class="codetrail-label">💡 Approach / Algorithm</label>
-                        <input type="text" id="codetrail-approach" class="codetrail-input" 
-                            placeholder="e.g., Two Pointers, Dynamic Programming, BFS..." />
-                    </div>
-                    
-                    <div class="codetrail-form-group">
-                        <label class="codetrail-label">📝 Notes</label>
-                        <textarea id="codetrail-notes" class="codetrail-input codetrail-textarea" 
-                            placeholder="Key insights, edge cases, time/space complexity notes..."></textarea>
-                    </div>
-                    
-                    <div class="codetrail-form-group">
-                        <label class="codetrail-label">🔗 Additional References</label>
-                        <input type="text" id="codetrail-refs" class="codetrail-input" 
-                            placeholder="LeetCode discussion link, article URL, etc." />
-                    </div>
-                    
-                    <div class="codetrail-modal-actions">
-                        <button class="codetrail-btn codetrail-btn-secondary" id="codetrail-skip">
-                            Skip & Sync
-                        </button>
-                        <button class="codetrail-btn codetrail-btn-primary" id="codetrail-sync">
-                            ✓ Sync with References
-                        </button>
-                    </div>
-                </div>
+            // Override if saved position exists
+            if (pos && pos.top && pos.left) {
+                top = pos.top;
+                left = pos.left;
+                transform = 'none';
+            }
+
+            modal.style.cssText = `
+                position: fixed;
+                top: ${top};
+                left: ${left};
+                transform: ${transform};
+                z-index: 2147483647;
+                background: #1a1a2e;
+                color: #fff;
+                padding: 0;
+                border-radius: 12px;
+                box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+                display: none;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                width: 400px;
+                max-width: 90vw;
+                border: 1px solid rgba(255,255,255,0.1);
+                transition: opacity 0.3s ease;
+                opacity: 0;
             `;
 
-            document.body.appendChild(overlay);
+            modal.innerHTML = `
+                <div id="codetrail-drag-handle" style="
+                    padding: 12px;
+                    cursor: move;
+                    background: rgba(255,255,255,0.05);
+                    border-bottom: 1px solid rgba(255,255,255,0.1);
+                    border-radius: 12px 12px 0 0;
+                    display: flex;
+                    justify-content: flex-end;
+                    align-items: center;
+                ">
+                    <span style="font-size: 12px; color: #666; margin-right: auto; padding-left: 8px;">::: Drag to move</span>
+                    <button id="codetrail-maximize" style="background:none; border:none; color:#888; cursor:pointer; font-size:16px; padding:0 8px; margin-right: 4px;" title="Toggle Fullscreen">⛶</button>
+                    <button id="codetrail-close" style="background:none; border:none; color:#888; cursor:pointer; font-size:16px; padding:0 4px;">&times;</button>
+                </div>
+                <div id="codetrail-main-body" style="padding: 24px; display: flex; flex-direction: column; align-items: center; gap: 16px; text-align: center; height: 100%; box-sizing: border-box;">
+                    <div id="codetrail-icon-container" style="display: flex; justify-content: center; align-items: center; width: 40px; height: 40px; flex-shrink: 0;">
+                        <div id="codetrail-spinner" style="
+                            width: 24px; 
+                            height: 24px; 
+                            border: 3px solid rgba(255,255,255,0.3); 
+                            border-top-color: #ffa116; 
+                            border-radius: 50%; 
+                            animation: spin 1s linear infinite;
+                        "></div>
+                        <div id="codetrail-success-icon" style="display: none; font-size: 32px;">✅</div>
+                        <div id="codetrail-error-icon" style="display: none; font-size: 32px;">❌</div>
+                    </div>
+                    <div style="flex-shrink: 0;">
+                        <h3 style="margin: 0; font-size: 18px; font-weight: 600; color: #ffa116;">CodeTrail</h3>
+                        <p id="codetrail-status" style="margin: 8px 0 0; font-size: 14px; color: rgba(255,255,255,0.9); line-height: 1.4;">Initializing...</p>
+                    </div>
+                    <div id="codetrail-content-area" style="width: 100%; text-align: left; display: none; flex: 1;"></div>
+                </div>
+                <style>
+                    @keyframes spin { to { transform: rotate(360deg); } }
+                </style>
+            `;
 
-            // Focus on first input
-            setTimeout(() => {
-                const youtubeInput = document.getElementById('codetrail-youtube');
-                if (youtubeInput) youtubeInput.focus();
-            }, 100);
+            document.body.appendChild(modal);
 
-            // Close handlers
-            const closeModal = () => {
-                overlay.remove();
-                resolve(null);
+            // Close handler
+            document.getElementById('codetrail-close').onclick = () => {
+                modal.style.display = 'none';
             };
 
-            // Skip handler (sync without references)
-            const skipSync = () => {
-                overlay.remove();
-                resolve({ ...problemData, references: {} });
-            };
+            // Maximize Toggle
+            const maximizeBtn = document.getElementById('codetrail-maximize');
+            let isMaximized = false;
+            let preMaxStyle = {};
 
-            // Sync with references handler
-            const syncWithRefs = () => {
-                const references = {
-                    youtube: document.getElementById('codetrail-youtube')?.value?.trim() || '',
-                    approach: document.getElementById('codetrail-approach')?.value?.trim() || '',
-                    notes: document.getElementById('codetrail-notes')?.value?.trim() || '',
-                    additionalRefs: document.getElementById('codetrail-refs')?.value?.trim() || ''
-                };
-                overlay.remove();
-                resolve({ ...problemData, references });
-            };
+            maximizeBtn.onclick = () => {
+                isMaximized = !isMaximized;
+                if (isMaximized) {
+                    // Save current state
+                    preMaxStyle = {
+                        top: modal.style.top,
+                        left: modal.style.left,
+                        transform: modal.style.transform,
+                        width: modal.style.width,
+                        maxWidth: modal.style.maxWidth,
+                        height: modal.style.height,
+                        borderRadius: modal.style.borderRadius
+                    };
 
-            // Event listeners
-            document.getElementById('codetrail-close').addEventListener('click', closeModal);
-            document.getElementById('codetrail-skip').addEventListener('click', skipSync);
-            document.getElementById('codetrail-sync').addEventListener('click', syncWithRefs);
-
-            // Close on overlay click
-            overlay.addEventListener('click', (e) => {
-                if (e.target === overlay) closeModal();
-            });
-
-            // Close on Escape key
-            const escHandler = (e) => {
-                if (e.key === 'Escape') {
-                    closeModal();
-                    document.removeEventListener('keydown', escHandler);
+                    // Apply fullscreen styles
+                    modal.style.top = '50%';
+                    modal.style.left = '50%';
+                    modal.style.transform = 'translate(-50%, -50%)';
+                    modal.style.width = '90vw';
+                    modal.style.maxWidth = '1000px';
+                    modal.style.height = '80vh';
+                    modal.style.borderRadius = '8px';
+                    maximizeBtn.innerHTML = '🗗'; // Minimize icon
+                } else {
+                    // Restore previous state
+                    modal.style.top = preMaxStyle.top;
+                    modal.style.left = preMaxStyle.left;
+                    modal.style.transform = preMaxStyle.transform;
+                    modal.style.width = preMaxStyle.width;
+                    modal.style.maxWidth = preMaxStyle.maxWidth;
+                    modal.style.height = 'auto'; // Reset height
+                    modal.style.borderRadius = preMaxStyle.borderRadius;
+                    maximizeBtn.innerHTML = '⛶'; // Maximize icon
                 }
             };
-            document.addEventListener('keydown', escHandler);
+
+            // Drag Logic
+            const handle = document.getElementById('codetrail-drag-handle');
+            let isDragging = false;
+            let startX, startY, initialLeft, initialTop;
+
+            handle.onmousedown = (e) => {
+                e.preventDefault();
+                isDragging = true;
+
+                startX = e.clientX;
+                startY = e.clientY;
+
+                const rect = modal.getBoundingClientRect();
+                initialLeft = rect.left;
+                initialTop = rect.top;
+
+                // Disable transition during drag
+                modal.style.transition = 'none';
+                modal.style.transform = 'none'; // Clear transform to switch to absolute positioning
+            };
+
+            document.onmousemove = (e) => {
+                if (!isDragging) return;
+
+                const dx = e.clientX - startX;
+                const dy = e.clientY - startY;
+
+                modal.style.left = `${initialLeft + dx}px`;
+                modal.style.top = `${initialTop + dy}px`;
+            };
+
+            document.onmouseup = () => {
+                if (!isDragging) return;
+                isDragging = false;
+
+                // Re-enable transition
+                modal.style.transition = 'opacity 0.3s ease';
+
+                // Save position
+                chrome.storage.local.set({
+                    codetrail_modal_pos: {
+                        top: modal.style.top,
+                        left: modal.style.left
+                    }
+                });
+            };
+        });
+    }
+
+    function showModal(status, message) {
+        const modal = document.getElementById('codetrail-modal');
+        if (!modal) return;
+
+        const statusEl = document.getElementById('codetrail-status');
+        const spinner = document.getElementById('codetrail-spinner');
+        const successIcon = document.getElementById('codetrail-success-icon');
+        const errorIcon = document.getElementById('codetrail-error-icon');
+
+        statusEl.textContent = message;
+        modal.style.display = 'block';
+
+        // Force reflow
+        void modal.offsetWidth;
+
+        modal.style.opacity = '1';
+        // Do NOT reset transform/top/left here to preserve user position
+
+        // Reset icons
+        spinner.style.display = 'none';
+        successIcon.style.display = 'none';
+        errorIcon.style.display = 'none';
+
+        if (status === 'success') {
+            successIcon.style.display = 'block';
+            setTimeout(hideModal, 3000);
+        } else if (status === 'error') {
+            errorIcon.style.display = 'block';
+            setTimeout(hideModal, 5000);
+        } else {
+            spinner.style.display = 'block';
+            spinner.style.borderTopColor = '#ffa116'; // Orange (Syncing)
+        }
+    }
+
+    function hideModal() {
+        const modal = document.getElementById('codetrail-modal');
+        if (!modal) return;
+
+        modal.style.opacity = '0';
+        setTimeout(() => {
+            modal.style.display = 'none';
+            // Reset state
+            const spinner = document.getElementById('codetrail-spinner');
+            const successIcon = document.getElementById('codetrail-success-icon');
+            const errorIcon = document.getElementById('codetrail-error-icon');
+
+            if (spinner) {
+                spinner.style.display = 'block';
+                spinner.style.borderTopColor = '#ffa116';
+            }
+            if (successIcon) successIcon.style.display = 'none';
+            if (errorIcon) errorIcon.style.display = 'none';
+        }, 300);
+    }
+
+    function setupMessageListener() {
+        chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+            if (message.type === 'SYNC_STATUS') {
+                showModal(message.status, message.message);
+            }
         });
     }
 
     // ============================================================
-    // URL AND NAVIGATION OBSERVERS
+    // MISSING HELPERS
     // ============================================================
 
-    /**
-     * Observe URL changes for submission detection
-     */
+    function showSyncModal(problemData) {
+        return new Promise((resolve) => {
+            const modal = document.getElementById('codetrail-modal');
+            const spinner = document.getElementById('codetrail-spinner');
+            const statusEl = document.getElementById('codetrail-status');
+            const contentArea = document.getElementById('codetrail-content-area');
+
+            if (!modal) {
+                resolve(problemData);
+                return;
+            }
+
+            // Hide spinner during input
+            spinner.style.display = 'none';
+            statusEl.textContent = 'Add Notes & References (Optional)';
+
+            // Show content area
+            contentArea.style.display = 'block';
+            contentArea.innerHTML = `
+                <div style="margin-top: 12px; display: flex; flex-direction: column; height: 100%;">
+                    <div style="display: flex; gap: 12px;">
+                        <div style="flex: 1;">
+                             <label style="display: block; margin-bottom: 6px; font-size: 12px; color: #aaa;">Method / Approach Name (Optional)</label>
+                             <input id="codetrail-method" placeholder="e.g. Two Pointers, DFS, Brute Force" style="width: 100%; margin-bottom: 12px; padding: 10px; border-radius: 6px; border: 1px solid #444; background: #222; color: #fff; font-size: 14px; box-sizing: border-box;">
+                        </div>
+                    </div>
+
+                    <label style="display: block; margin-bottom: 6px; font-size: 12px; color: #aaa;">Notes / Approach / Complexity</label>
+                    <textarea id="codetrail-notes" placeholder="e.g. O(n) time using HashMap..." style="width: 100%; flex: 1; min-height: 60px; margin-bottom: 12px; padding: 10px; border-radius: 6px; border: 1px solid #444; background: #222; color: #fff; font-size: 14px; box-sizing: border-box; resize: vertical;"></textarea>
+                    
+                    <label style="display: block; margin-bottom: 6px; font-size: 12px; color: #aaa;">YouTube Link</label>
+                    <input id="codetrail-youtube" placeholder="https://youtube.com/watch?v=..." style="width: 100%; margin-bottom: 16px; padding: 10px; border-radius: 6px; border: 1px solid #444; background: #222; color: #fff; font-size: 14px; box-sizing: border-box;">
+                    
+                    <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: auto;">
+                        <button id="codetrail-sync" style="padding: 8px 24px; border-radius: 6px; border: none; background: #ffa116; color: #000; font-weight: 600; cursor: pointer; font-size: 14px; transition: all 0.2s; width: 100%;">Sync to GitHub</button>
+                    </div>
+                </div>
+            `;
+
+            modal.style.display = 'block';
+            modal.style.opacity = '1';
+            // Do NOT reset transform/top/left here to preserve user position
+            modal.style.pointerEvents = 'auto'; // Enable interaction
+
+            const syncBtn = document.getElementById('codetrail-sync');
+            const notesInput = document.getElementById('codetrail-notes');
+            const methodInput = document.getElementById('codetrail-method');
+            const youtubeInput = document.getElementById('codetrail-youtube');
+
+            // Focus notes for convenience (or method if preferred, focusing notes for now)
+            setTimeout(() => methodInput.focus(), 100);
+
+            const finish = (references = {}) => {
+                // Restore loading state
+                contentArea.style.display = 'none';
+                contentArea.innerHTML = '';
+                spinner.style.display = 'block';
+                statusEl.textContent = 'Syncing to GitHub...';
+                modal.style.pointerEvents = 'none';
+                resolve({
+                    ...problemData,
+                    references
+                });
+            };
+
+            const cancel = () => {
+                modal.style.opacity = '0';
+                setTimeout(() => {
+                    modal.style.display = 'none';
+                    contentArea.style.display = 'none';
+                    contentArea.innerHTML = '';
+                }, 300);
+                resolve(null); // Return null to abort sync
+            };
+
+            syncBtn.onclick = () => {
+                const notes = notesInput.value.trim();
+                const method = methodInput.value.trim();
+                const youtube = youtubeInput.value.trim();
+
+                const hasContent = notes || method || youtube;
+
+                if (hasContent) {
+                    finish({
+                        notes,
+                        method,
+                        youtube
+                    });
+                } else {
+                    finish({});
+                }
+            };
+
+            // Close button now acts as the only "Cancel"
+            const closeBtn = document.getElementById('codetrail-close');
+            // We need to override the default close handler assigned in injectModal
+            // to ensure it resolves the promise with null
+            closeBtn.onclick = cancel;
+        });
+    }
+
+    function setupCleanup() {
+        // Cleanup if needed
+    }
+
     function observeURLChanges() {
         let lastUrl = location.href;
-
-        // Observe pushState/replaceState
-        const pushState = history.pushState;
-        const replaceState = history.replaceState;
-
-        history.pushState = function (...args) {
-            pushState.apply(history, args);
-            handleURLChange();
-        };
-
-        history.replaceState = function (...args) {
-            replaceState.apply(history, args);
-            handleURLChange();
-        };
-
-        // Observe popstate
-        window.addEventListener('popstate', handleURLChange);
-
-        function handleURLChange() {
-            const currentUrl = location.href;
-            if (currentUrl !== lastUrl) {
-                lastUrl = currentUrl;
-                console.log('LeetHub: URL changed to', currentUrl);
-
-                // Check if navigated to submission result page
-                const submissionId = extractSubmissionIdFromUrl(currentUrl);
-                if (submissionId) {
-                    console.log('LeetHub: Detected submission ID from URL:', submissionId);
-                    // Allow the page to load before checking
-                    setTimeout(() => checkSubmissionFromId(submissionId), 1500);
+        new MutationObserver(() => {
+            const url = location.href;
+            if (url !== lastUrl) {
+                lastUrl = url;
+                if (url.includes('/submissions/')) {
+                    setTimeout(checkForAcceptedStatus, 1000);
                 }
             }
-        }
+        }).observe(document, { subtree: true, childList: true });
     }
 
-    /**
-     * Extract submission ID from URL
-     */
-    function extractSubmissionIdFromUrl(url) {
-        const match = url.match(/\/submissions\/(\d+)/);
-        return match ? match[1] : null;
-    }
-
-    /**
-     * Check submission status using GraphQL when we have submission ID
-     */
-    async function checkSubmissionFromId(submissionId) {
-        try {
-            const details = await fetchSubmissionDetails(submissionId);
-
-            if (details && details.statusCode === 10) { // 10 = Accepted
-                console.log('LeetHub: GraphQL confirmed accepted submission');
-                await processAcceptedSubmission(details, submissionId);
-            }
-        } catch (error) {
-            console.error('LeetHub: Error checking submission from ID:', error);
-        }
+    function injectStyles() {
+        // Styles injected via injectModal
     }
 
     /**
      * Observe submission result containers with optimized targeting
      */
     function observePageAttributes() {
-        const targetSelectors = [
-            '[data-e2e-locator="submission-result"]',
-            '.submission-result',
-            '#submission-panel',
-            '[class*="submission"]'
-        ];
+        // Use the dynamically loaded selectors
+        const targetSelectors = SELECTORS.SUBMISSION_RESULT;
 
         const observeTarget = () => {
             for (const selector of targetSelectors) {
@@ -604,7 +532,7 @@
             childList: true,
             subtree: true,
             attributes: false,
-            characterData: false
+            characterData: false,
         });
     }
 
@@ -650,20 +578,20 @@
             });
 
             if (!response.ok) {
-                console.error('LeetHub: GraphQL request failed:', response.status);
+                console.error('CodeTrail: GraphQL request failed:', response.status);
                 return null;
             }
 
             const data = await response.json();
 
             if (data.errors) {
-                console.error('LeetHub: GraphQL errors:', data.errors);
+                console.error('CodeTrail: GraphQL errors:', data.errors);
                 return null;
             }
 
             return data.data?.submissionDetails || null;
         } catch (error) {
-            console.error('LeetHub: Error fetching submission details:', error);
+            console.error('CodeTrail: Error fetching submission details:', error);
             return null;
         }
     }
@@ -677,21 +605,17 @@
         const isAccepted = detectAcceptedStatus();
 
         if (isAccepted) {
-            console.log('LeetHub: Accepted status detected. Preparing to notify...');
+            console.log('CodeTrail: Accepted status detected. Preparing to notify...');
 
-            // Try to get submission ID from URL first
             const submissionId = extractSubmissionIdFromUrl(window.location.href);
 
             if (submissionId) {
-                // Use GraphQL API for accurate data
                 const details = await fetchSubmissionDetails(submissionId);
                 if (details) {
                     await processAcceptedSubmission(details, submissionId);
                     return;
                 }
             }
-
-            // Fallback to DOM extraction
             const problemData = await extractProblemData();
             if (problemData) {
                 await sendToBackground(problemData);
@@ -700,13 +624,10 @@
 
         const elapsed = performance.now() - startTime;
         if (elapsed > 100) {
-            console.warn(`LeetHub: Slow detection (${elapsed.toFixed(2)}ms)`);
+            console.warn(`CodeTrail: Slow detection(${elapsed.toFixed(2)}ms)`);
         }
     }
 
-    /**
-     * Process accepted submission from GraphQL data
-     */
     async function processAcceptedSubmission(details, submissionId) {
         const question = details.question;
         const problemSlug = question.titleSlug;
@@ -714,8 +635,8 @@
 
         // Check cooldown
         const lastSyncTime = syncedProblems.get(problemSlug);
-        if (lastSyncTime && (now - lastSyncTime < COOLDOWN_MS)) {
-            console.log('LeetHub: Problem recently synced, skipping...');
+        if (lastSyncTime && now - lastSyncTime < COOLDOWN_MS) {
+            console.log('CodeTrail: Problem recently synced, skipping...');
             return;
         }
 
@@ -728,14 +649,15 @@
 
         // Get language extension
         const langName = details.lang?.name || details.lang?.verboseName || 'Unknown';
-        const langExt = languages[langName] || `.${langName.toLowerCase()}`;
+        // Note: LANGUAGES loaded from module
+        const langExt = LANGUAGES[langName] || `.${langName.toLowerCase()} `;
 
         // Build problem data
         const problemData = {
             title: question.title,
             number: number,
             difficulty: question.difficulty,
-            tags: question.topicTags?.map(t => t.name) || [],
+            tags: question.topicTags?.map((t) => t.name) || [],
             code: details.code,
             language: langName,
             url: `https://leetcode.com/problems/${problemSlug}/`,
@@ -747,7 +669,7 @@
             runtimePercentile: details.runtimePercentile,
             memory: details.memoryDisplay,
             memoryPercentile: details.memoryPercentile,
-            timestamp: details.timestamp
+            timestamp: details.timestamp,
         };
 
         // Show modal for adding reference materials
@@ -777,7 +699,7 @@
         };
 
         const topicTags = question.topicTags
-            ? question.topicTags.map(tag => `\`${tag.name}\``).join(' ')
+            ? question.topicTags.map((tag) => `\`${tag.name}\``).join(' ')
             : '';
 
         let readme = `# ${question.title}\n\n`;
@@ -839,82 +761,85 @@
      * Format problem content from HTML to proper markdown
      * Handles: code blocks, examples, images, and proper spacing
      */
+    /**
+     * Convert HTML to Markdown using DOMParser for robustness
+     */
     function formatProblemContent(htmlContent) {
         if (!htmlContent) return '*Problem description not available*';
 
-        let content = htmlContent;
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(htmlContent, 'text/html');
 
-        // Extract and preserve images first
-        const images = [];
-        content = content.replace(/<img[^>]+src=["']([^"']+)["'][^>]*>/gi, (match, src) => {
-            const placeholder = `__IMAGE_${images.length}__`;
-            images.push(src);
-            return placeholder;
-        });
+        // Remove unwanted elements
+        doc.querySelectorAll('button, .topicTags, .seeMore').forEach(el => el.remove());
 
-        // Convert <pre> blocks to markdown code blocks
-        content = content.replace(/<pre[^>]*>([\s\S]*?)<\/pre>/gi, (match, code) => {
-            const cleanCode = code
-                .replace(/<[^>]*>/g, '')
-                .replace(/&nbsp;/g, ' ')
-                .replace(/&lt;/g, '<')
-                .replace(/&gt;/g, '>')
-                .replace(/&amp;/g, '&')
-                .trim();
-            return '\n```\n' + cleanCode + '\n```\n';
-        });
+        function walk(node) {
+            let result = '';
 
-        // Convert <code> to inline code
-        content = content.replace(/<code[^>]*>(.*?)<\/code>/gi, '`$1`');
+            for (const child of node.childNodes) {
+                if (child.nodeType === Node.TEXT_NODE) {
+                    result += child.textContent;
+                } else if (child.nodeType === Node.ELEMENT_NODE) {
+                    const content = walk(child);
+                    const tag = child.tagName.toLowerCase();
 
-        // Handle strong/bold
-        content = content.replace(/<strong[^>]*>(.*?)<\/strong>/gi, '**$1**');
-        content = content.replace(/<b[^>]*>(.*?)<\/b>/gi, '**$1**');
+                    switch (tag) {
+                        case 'strong':
+                        case 'b':
+                            result += `**${content}**`;
+                            break;
+                        case 'em':
+                        case 'i':
+                            result += `*${content}*`;
+                            break;
+                        case 'code':
+                            result += `\`${content}\``;
+                            break;
+                        case 'pre':
+                            result += `\n\`\`\`\n${child.textContent.trim()}\n\`\`\`\n`;
+                            break;
+                        case 'p':
+                        case 'div':
+                            result += `\n${content}\n`;
+                            break;
+                        case 'ul':
+                        case 'ol':
+                            result += `\n${content}\n`;
+                            break;
+                        case 'li':
+                            result += `- ${content}\n`;
+                            break;
+                        case 'br':
+                            result += '\n';
+                            break;
+                        case 'img':
+                            const src = child.getAttribute('src');
+                            if (src) result += `\n![Image](${src})\n`;
+                            break;
+                        case 'h1': result += `\n# ${content}\n`; break;
+                        case 'h2': result += `\n## ${content}\n`; break;
+                        case 'h3': result += `\n### ${content}\n`; break;
+                        case 'h4': result += `\n#### ${content}\n`; break;
+                        case 'h5': result += `\n##### ${content}\n`; break;
+                        case 'h6': result += `\n###### ${content}\n`; break;
+                        default:
+                            result += content;
+                    }
+                }
+            }
+            return result;
+        }
 
-        // Handle emphasis/italic
-        content = content.replace(/<em[^>]*>(.*?)<\/em>/gi, '*$1*');
-        content = content.replace(/<i[^>]*>(.*?)<\/i>/gi, '*$1*');
+        let markdown = walk(doc.body);
 
-        // Handle lists
-        content = content.replace(/<ul[^>]*>/gi, '\n');
-        content = content.replace(/<\/ul>/gi, '\n');
-        content = content.replace(/<li[^>]*>(.*?)<\/li>/gi, '- $1\n');
-
-        // Handle paragraphs and line breaks
-        content = content.replace(/<p[^>]*>/gi, '\n');
-        content = content.replace(/<\/p>/gi, '\n');
-        content = content.replace(/<br\s*\/?>/gi, '\n');
-        content = content.replace(/<div[^>]*>/gi, '\n');
-        content = content.replace(/<\/div>/gi, '\n');
-
-        // Remove remaining HTML tags
-        content = content.replace(/<[^>]*>/g, '');
-
-        // Decode HTML entities
-        content = content
+        // Post-processing cleanup
+        return markdown
+            .replace(/\n{3,}/g, '\n\n') // Max 2 newlines
             .replace(/&nbsp;/g, ' ')
             .replace(/&lt;/g, '<')
             .replace(/&gt;/g, '>')
             .replace(/&amp;/g, '&')
-            .replace(/&quot;/g, '"')
-            .replace(/&#39;/g, "'")
-            .replace(/&times;/g, '×')
-            .replace(/&le;/g, '≤')
-            .replace(/&ge;/g, '≥');
-
-        // Restore images as markdown
-        images.forEach((src, i) => {
-            content = content.replace(`__IMAGE_${i}__`, `\n![Example](${src})\n`);
-        });
-
-        // Clean up excessive whitespace while preserving structure
-        content = content
-            .replace(/\n{4,}/g, '\n\n\n')  // Max 3 newlines
-            .replace(/[ \t]+/g, ' ')        // Collapse horizontal spaces
-            .replace(/\n +/g, '\n')         // Remove leading spaces on lines
             .trim();
-
-        return content;
     }
 
     /**
@@ -922,13 +847,13 @@
      */
     function generateReadmeWithRefs(question, submission, references = {}) {
         const difficultyBadge = {
-            Easy: '🟢 Easy',
-            Medium: '🟡 Medium',
-            Hard: '🔴 Hard',
+            Easy: 'Easy',
+            Medium: 'Medium',
+            Hard: 'Hard',
         };
 
         const topicTags = question.topicTags
-            ? question.topicTags.map(tag => `\`${tag.name}\``).join(' ')
+            ? question.topicTags.map((tag) => `\`${tag.name}\``).join(' ')
             : '';
 
         // Build LeetCode URL
@@ -981,15 +906,15 @@
             readme += `## References\n\n`;
 
             if (references.youtube) {
-                readme += `📺 **Video Explanation**: [Watch on YouTube](${references.youtube})\n\n`;
+                readme += `**Video Explanation**: [Watch on YouTube](${references.youtube})\n\n`;
             }
 
             if (references.notes) {
-                readme += `📝 **Notes**:\n${references.notes}\n\n`;
+                readme += `**Notes**:\n${references.notes}\n\n`;
             }
 
             if (references.additionalRefs) {
-                readme += `🔗 **Additional Resources**: ${references.additionalRefs}\n\n`;
+                readme += `**Additional Resources**: ${references.additionalRefs}\n\n`;
             }
         }
 
@@ -1010,20 +935,22 @@
         try {
             await chrome.runtime.sendMessage({
                 type: 'SUBMISSION_DETECTED',
-                data: problemData
+                data: problemData,
             });
-            console.log('LeetHub: Notification request sent.');
+            console.log('CodeTrail: Notification request sent.');
         } catch (error) {
-            console.error('LeetHub: Failed to send message to background:', error);
+            console.error('CodeTrail: Failed to send message to background:', error);
 
             if (error.message && error.message.includes('Extension context invalidated')) {
-                console.warn('⚠️ LeetHub: Extension was reloaded. Please refresh this page (F5) to reconnect.');
+                console.warn(
+                    '⚠️ CodeTrail: Extension was reloaded. Please refresh this page (F5) to reconnect.'
+                );
                 const shouldReload = confirm(
-                    '⚠️ LeetHub Extension\n\n' +
+                    '⚠️ CodeTrail Extension\n\n' +
                     'The extension was recently reloaded/updated.\n' +
                     'The connection needs to be refreshed.\n\n' +
                     'Click OK to reload this page now, or Cancel to reload manually later.\n\n' +
-                    '(Your submission was detected but couldn\'t be synced yet.)'
+                    "(Your submission was detected but couldn't be synced yet.)"
                 );
                 if (shouldReload) {
                     window.location.reload();
@@ -1036,13 +963,21 @@
     }
 
     function detectAcceptedStatus() {
-        const successElements = document.querySelectorAll('.text-green-500, .text-success, .text-olive');
+        // Check by class names for color (common in LeetCode)
+        const successElements = document.querySelectorAll(SELECTORS.CHECK_SUCCESS_CLASSES.join(', '));
+
         for (const el of successElements) {
             if (el.textContent.trim() === 'Accepted') return true;
         }
 
-        const statusText = document.querySelector('span[data-e2e-locator="submission-result"]');
-        if (statusText && statusText.textContent.trim() === 'Accepted') return true;
+        // Check by specific data attributes
+        const statusSelectors = SELECTORS.CHECK_SUCCESS_ATTRIBUTES;
+
+        for (const sel of statusSelectors) {
+            const el = document.querySelector(sel);
+            if (el && el.textContent.trim() === 'Accepted') return true;
+        }
+
 
         return false;
     }
@@ -1064,9 +999,7 @@
         const problemSlug = getProblemSlug();
         const description = extractProblemDescription();
 
-        const formattedNum = number && /^\d+$/.test(number)
-            ? number.padStart(4, '0')
-            : null;
+        const formattedNum = number && /^\d+$/.test(number) ? number.padStart(4, '0') : null;
         const folderName = formattedNum
             ? `${formattedNum}-${toFolderName(title)}`
             : toFolderName(title);
@@ -1081,12 +1014,12 @@
             url: `https://leetcode.com/problems/${problemSlug}/`,
             problemSlug,
             folderName,
-            description
+            description,
         };
     }
 
     function extractTitleAndNumber() {
-        const titleLink = document.querySelector('div.flex.items-center.gap-2 > a[href*="/problems/"]');
+        const titleLink = document.querySelector(SELECTORS.TITLE_LINK);
         if (titleLink) {
             const text = titleLink.innerText;
             const match = text.match(/^(\d+)\.\s*(.+)/);
@@ -1099,56 +1032,68 @@
         if (docMatch) return { number: docMatch[1], title: docMatch[2] };
 
         const slug = getProblemSlug();
-        const formatted = slug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+        const formatted = slug
+            .split('-')
+            .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+            .join(' ');
         return { number: null, title: formatted };
     }
 
     function extractCode() {
-        const lines = document.querySelectorAll('.view-line');
+        // Try each container in order
+        // SELECTORS.CODE_CONTAINERS: ['.view-line', '.monaco-editor .view-lines', 'pre', 'textarea[name="code"]']
+
+        // 1. Monaco Editor (Lines)
+        const lines = document.querySelectorAll(SELECTORS.CODE_CONTAINERS[0]);
         if (lines.length > 0) {
-            const code = Array.from(lines).map(l => {
-                const text = l.innerText || l.textContent || '';
-                return text.replace(/\u00A0/g, ' ');
-            }).join('\n');
+            const code = Array.from(lines)
+                .map((l) => {
+                    const text = l.innerText || l.textContent || '';
+                    return text.replace(/\u00A0/g, ' ');
+                })
+                .join('\n');
 
             if (code.trim().length > 0) {
-                console.log(`LeetHub: Extracted ${code.split('\n').length} lines from Monaco editor`);
+                console.log(`CodeTrail: Extracted ${code.split('\n').length} lines from Monaco editor`);
                 return code;
             }
         }
 
-        const editorContainer = document.querySelector('.monaco-editor .view-lines');
+        // 2. Monaco Editor (Container)
+        const editorContainer = document.querySelector(SELECTORS.CODE_CONTAINERS[1]);
         if (editorContainer) {
             const code = editorContainer.innerText || editorContainer.textContent || '';
             if (code.trim().length > 0) {
-                console.log('LeetHub: Extracted code from editor container');
+                console.log('CodeTrail: Extracted code from editor container');
                 return code.replace(/\u00A0/g, ' ');
             }
         }
 
-        const pre = document.querySelector('pre');
+        // 3. Pre tag
+        const pre = document.querySelector(SELECTORS.CODE_CONTAINERS[2]);
         if (pre) {
-            console.log('LeetHub: Extracted code from pre tag');
+            console.log('CodeTrail: Extracted code from pre tag');
             return pre.innerText || pre.textContent || '';
         }
 
-        const ta = document.querySelector('textarea[name="code"]');
+        // 4. Textarea
+        const ta = document.querySelector(SELECTORS.CODE_CONTAINERS[3]);
         if (ta && ta.value) {
-            console.log('LeetHub: Extracted code from textarea');
+            console.log('CodeTrail: Extracted code from textarea');
             return ta.value;
         }
 
-        console.error('LeetHub: Could not extract code from page');
+        console.error('CodeTrail: Could not extract code from page');
         return null;
     }
 
     function extractLanguage() {
-        const el = document.querySelector('[data-cy="lang-select"] span');
+        const el = document.querySelector(SELECTORS.LANG_SELECT[0]);
         if (el) {
             return normalizeLang(el.innerText.trim());
         }
 
-        const pill = document.querySelector('div.text-xs.font-medium.text-label-1');
+        const pill = document.querySelector(SELECTORS.LANG_SELECT[1]);
         if (pill) {
             return normalizeLang(pill.innerText.trim());
         }
@@ -1168,52 +1113,50 @@
         const normalized = lang.toLowerCase().replace(/\s+/g, '');
 
         const langMap = {
-            'java': 'Java',
-            'python': 'Python',
-            'python3': 'Python3',
-            'javascript': 'JavaScript',
-            'typescript': 'TypeScript',
+            java: 'Java',
+            python: 'Python',
+            python3: 'Python3',
+            javascript: 'JavaScript',
+            typescript: 'TypeScript',
             'c++': 'C++',
-            'cpp': 'C++',
-            'c': 'C',
+            cpp: 'C++',
+            c: 'C',
             'c#': 'C#',
-            'csharp': 'C#',
-            'go': 'Go',
-            'golang': 'Go',
-            'ruby': 'Ruby',
-            'swift': 'Swift',
-            'kotlin': 'Kotlin',
-            'scala': 'Scala',
-            'rust': 'Rust',
-            'php': 'PHP',
-            'sql': 'SQL',
-            'mysql': 'MySQL',
-            'bash': 'Bash',
-            'shell': 'Shell'
+            csharp: 'C#',
+            go: 'Go',
+            golang: 'Go',
+            ruby: 'Ruby',
+            swift: 'Swift',
+            kotlin: 'Kotlin',
+            scala: 'Scala',
+            rust: 'Rust',
+            php: 'PHP',
+            sql: 'SQL',
+            mysql: 'MySQL',
+            bash: 'Bash',
+            shell: 'Shell',
         };
 
         return langMap[normalized] || lang;
     }
 
     function extractDifficulty() {
-        if (document.querySelector('.text-olive') || document.querySelector('.text-green-500')) return 'Easy';
-        if (document.querySelector('.text-yellow') || document.querySelector('.text-yellow-500')) return 'Medium';
-        if (document.querySelector('.text-pink') || document.querySelector('.text-red-500')) return 'Hard';
+        for (const selector of SELECTORS.DIFFICULTY.EASY) {
+            if (document.querySelector(selector)) return 'Easy';
+        }
+        for (const selector of SELECTORS.DIFFICULTY.MEDIUM) {
+            if (document.querySelector(selector)) return 'Medium';
+        }
+        for (const selector of SELECTORS.DIFFICULTY.HARD) {
+            if (document.querySelector(selector)) return 'Hard';
+        }
         return 'Unknown';
     }
 
     function extractProblemDescription() {
         try {
-            const descriptionSelectors = [
-                '[data-track-load="description_content"]',
-                '.elfjS[data-track-load="description_content"]',
-                '.description__24sA',
-                'div[class*="description"]',
-                '.content__u3I1'
-            ];
-
             let descriptionElement = null;
-            for (const selector of descriptionSelectors) {
+            for (const selector of SELECTORS.DESCRIPTION) {
                 descriptionElement = document.querySelector(selector);
                 if (descriptionElement) break;
             }
@@ -1222,48 +1165,34 @@
                 return 'Problem description not available. Please view on LeetCode.';
             }
 
-            const clone = descriptionElement.cloneNode(true);
-            clone.querySelectorAll('button, .topicTags, .seeMore').forEach(el => el.remove());
-
-            let description = clone.innerHTML;
-
-            description = description
-                .replace(/<strong>(.*?)<\/strong>/gi, '**$1**')
-                .replace(/<b>(.*?)<\/b>/gi, '**$1**')
-                .replace(/<em>(.*?)<\/em>/gi, '*$1*')
-                .replace(/<i>(.*?)<\/i>/gi, '*$1*')
-                .replace(/<code>(.*?)<\/code>/gi, '`$1`')
-                .replace(/<pre>(.*?)<\/pre>/gis, '\n```\n$1\n```\n')
-                .replace(/<p>/gi, '\n')
-                .replace(/<\/p>/gi, '\n')
-                .replace(/<br\s*\/?>/gi, '\n')
-                .replace(/<ul>/gi, '\n')
-                .replace(/<\/ul>/gi, '\n')
-                .replace(/<ol>/gi, '\n')
-                .replace(/<\/ol>/gi, '\n')
-                .replace(/<li>/gi, '- ')
-                .replace(/<\/li>/gi, '\n')
-                .replace(/<h1[^>]*>(.*?)<\/h1>/gi, '\n# $1\n')
-                .replace(/<h2[^>]*>(.*?)<\/h2>/gi, '\n## $1\n')
-                .replace(/<h3[^>]*>(.*?)<\/h3>/gi, '\n### $1\n')
-                .replace(/<[^>]+>/g, '')
-                .replace(/&nbsp;/g, ' ')
-                .replace(/&lt;/g, '<')
-                .replace(/&gt;/g, '>')
-                .replace(/&amp;/g, '&')
-                .replace(/&quot;/g, '"')
-                .replace(/\*\*([^*]+)\*\*/g, '$1')
-                .replace(/\n\s*\n\s*\n/g, '\n\n')
-                .trim();
-
-            return description || 'Problem description not available.';
+            return formatProblemContent(descriptionElement.innerHTML);
         } catch (error) {
-            console.error('LeetHub: Failed to extract problem description:', error);
+            console.error('CodeTrail: Failed to extract problem description:', error);
             return 'Problem description not available. Please view on LeetCode.';
         }
     }
 
-    function extractTags() { return []; }
+    function extractTags() {
+        try {
+            let tags = [];
+            for (const selector of SELECTORS.TAGS) {
+                const elements = document.querySelectorAll(selector);
+                if (elements.length > 0) {
+                    elements.forEach(el => {
+                        const tag = el.innerText || el.textContent;
+                        if (tag) tags.push(tag.trim());
+                    });
+                    break;
+                }
+            }
+
+            // Remove duplicates
+            return [...new Set(tags)];
+        } catch (e) {
+            console.error('CodeTrail: Error extracting tags', e);
+            return [];
+        }
+    }
 
     function getProblemSlug() {
         const match = window.location.pathname.match(/\/problems\/([^\/]+)/);
@@ -1271,7 +1200,13 @@
     }
 
     function toFolderName(title) {
-        return title.replace(/[^a-zA-Z0-9\s-]/g, '').replace(/\s+/g, '-');
+        if (!title) return 'unknown-problem';
+        return title
+            .trim()
+            .replace(/[^a-zA-Z0-9\s-]/g, '')
+            .replace(/\s+/g, '-')
+            .replace(/-+/g, '-')
+            .toLowerCase();
     }
 
     // ============================================================
@@ -1294,14 +1229,16 @@
         return true;
     });
 
+    function extractSubmissionIdFromUrl(url) {
+        const match = url.match(/\/submissions\/(\d+)/);
+        return match ? match[1] : null;
+    }
+
     // ============================================================
     // START
     // ============================================================
 
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
-    } else {
-        init();
-    }
-
+    // Initialization is handled by the async IIFE at the top
+    // requiring dynamic imports. We do NOT need to call init() here manually
+    // as it would miss the required constants.
 })();

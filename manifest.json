@@ -1,12 +1,13 @@
 {
   "manifest_version": 3,
   "name": "CodeTrail - Sync LeetCode to GitHub",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Automatically sync your LeetCode solutions to GitHub with topic-based organization",
   "permissions": [
     "storage",
     "notifications",
     "webNavigation",
+    "alarms",
     "unlimitedStorage"
   ],
   "host_permissions": [
@@ -41,5 +42,16 @@
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
-  }
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "utils/constants.js",
+        "icons/*.png"
+      ],
+      "matches": [
+        "https://leetcode.com/*"
+      ]
+    }
+  ]
 }

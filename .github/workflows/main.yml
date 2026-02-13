@@ -1,0 +1,42 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: ['main', 'master']
+  pull_request:
+    branches: ['main', 'master']
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18.x'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Linting
+        run: npm run lint
+        continue-on-error: true # Don't fail completely on lint warnings for now
+
+      - name: Run Tests
+        # We use NODE_OPTIONS to support experimental features if needed,
+        # but Jest 29+ handles ESM well with configuration
+        run: npm test
+
+      - name: Build Extension (Zip)
+        run: |
+          zip -r extension.zip . -x "*.git*" "node_modules/*" "tests/*" ".github/*" ".*" "*.md"
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: extension-build
+          path: extension.zip

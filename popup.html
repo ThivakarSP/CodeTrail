@@ -4,38 +4,45 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LeetHub</title>
+  <title>CodeTrail</title>
   <link rel="stylesheet" href="popup.css">
 </head>
 
 <body>
   <div class="container">
     <header>
-      <div class="logo">
-        <span class="logo-icon">⚡</span>
-        <h1>LeetHub</h1>
-      </div>
-      <div class="status-indicator" id="statusIndicator">
-        <span class="status-dot"></span>
-        <span class="status-text">Checking...</span>
+      <div class="header-top">
+        <div class="logo">
+          <span class="logo-icon">🚀</span>
+          <h1>CodeTrail</h1>
+        </div>
+        <div class="status-indicator" id="statusIndicator">
+          <span class="status-dot"></span>
+          <span class="status-text">Active</span>
+        </div>
       </div>
     </header>
 
     <main>
-      <section class="config-status" id="configStatus">
-        <div class="config-card" id="configCard">
-          <div class="config-icon">⚙️</div>
-          <div class="config-info">
-            <h3>Not Configured</h3>
-            <p>Set up your GitHub connection</p>
+      <!-- Config Card -->
+      <div id="configCard" class="config-card">
+        <!-- Injected by JS -->
+      </div>
+
+      <!-- Toggle Section -->
+      <div class="toggle-section">
+        <label class="toggle-label">
+          <span>Enable CodeTrail</span>
+          <div class="toggle-switch">
+            <input type="checkbox" id="enableToggle">
+            <span class="toggle-slider"></span>
           </div>
-          <button class="btn-configure" id="openOptions">Configure</button>
-        </div>
-      </section>
+        </label>
+      </div>
 
       <!-- Stats Section -->
-      <section class="stats-section" id="statsSection">
-        <h2>📊 Your Progress</h2>
+      <div class="stats-section">
+        <h2>Your Progress</h2>
         <div class="stats-grid">
           <div class="stat-card stat-total">
             <span class="stat-value" id="statTotal">0</span>
@@ -54,38 +61,50 @@
             <span class="stat-label">Hard</span>
           </div>
         </div>
-        <button class="btn-reset-stats" id="resetStats" title="Reset statistics">🔄 Reset Stats</button>
-      </section>
 
-      <section class="toggle-section">
-        <label class="toggle-label">
-          <span>Extension Active</span>
-          <div class="toggle-switch">
-            <input type="checkbox" id="enableToggle" checked>
-            <span class="toggle-slider"></span>
+        <!-- Velocity Stats -->
+        <div class="velocity-section">
+          <div class="velocity-grid">
+            <div class="stat-mini">
+              <span class="stat-value-mini" id="statWeekly">0</span>
+              <span class="stat-label-mini">This Week</span>
+            </div>
+            <div class="stat-mini">
+              <span class="stat-value-mini" id="statMonthly">0</span>
+              <span class="stat-label-mini">This Month</span>
+            </div>
+            <div class="stat-mini">
+              <span class="stat-value-mini" id="statYearly">0</span>
+              <span class="stat-label-mini">This Year</span>
+            </div>
           </div>
-        </label>
-      </section>
+        </div>
 
-      <section class="history-section">
+        <button class="btn-reset-stats" id="resetStats" title="Reset statistics" style="margin-top: 15px;">Reset
+          Stats</button>
+      </div>
+
+      <!-- History Section -->
+      <div class="history-section">
         <h2>Recent Syncs</h2>
-        <div class="history-list" id="historyList">
+        <div id="historyList" class="history-list">
+          <!-- Injected by JS -->
           <div class="empty-state">
-            <span class="empty-icon">📭</span>
+            <span class="empty-icon">📂</span>
             <p>No synced problems yet</p>
           </div>
         </div>
-      </section>
+      </div>
     </main>
 
     <footer>
-      <a href="#" id="openOptionsLink">⚙️ Settings</a>
-      <a href="#" id="openRepoLink" class="repo-link" style="display: none;">📂 Open Repository</a>
-      <span class="version">v1.0.0</span>
+      <a href="#" id="openOptionsLink">Settings</a>
+      <a href="#" id="openRepoLink" class="repo-link" style="display: none;">Open Repository</a>
+      <span class="version">v1.1.0</span>
     </footer>
   </div>
 
-  <script src="popup.js"></script>
+  <script type="module" src="popup.js"></script>
 </body>
 
 </html>
