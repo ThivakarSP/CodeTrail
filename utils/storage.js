@@ -197,7 +197,10 @@ export async function getSyncHistory() {
     });
 
   // If we filtered or normalized something, save the cleaned version
-  if (validHistory.length !== history.length || JSON.stringify(validHistory) !== JSON.stringify(history)) {
+  if (
+    validHistory.length !== history.length ||
+    JSON.stringify(validHistory) !== JSON.stringify(history)
+  ) {
     await setStorage({ [KEYS.HISTORY]: validHistory });
   }
 

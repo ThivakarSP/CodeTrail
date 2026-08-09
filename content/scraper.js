@@ -50,10 +50,10 @@
       if (window.location.href.includes('/submissions/')) {
         const bodyText = document.body.innerText || '';
         if (bodyText.includes('Status: Accepted') || bodyText.includes('Accepted')) {
-            // Be careful with false positives on submissions list page
-            if (document.querySelector('.text-green-500, .text-success')) {
-                return true;
-            }
+          // Be careful with false positives on submissions list page
+          if (document.querySelector('.text-green-500, .text-success')) {
+            return true;
+          }
         }
       }
 
@@ -94,10 +94,10 @@
 
       // Stats
       // Pass bodyText explicitly to avoid global cache
-      const runtime = this.extractStat(bodyText, /Runtime\s*:\s*([\d\.]+\s*ms)/i);
-      const runtimePercentile = this.extractStat(bodyText, /Beats\s*([\d\.]+)\s*%/i, true);
-      const memory = this.extractStat(bodyText, /Memory\s*:\s*([\d\.]+\s*MB)/i);
-      const memoryPercentile = this.extractStat(bodyText, /Beats\s*([\d\.]+)\s*%/i, true, true);
+      const runtime = this.extractStat(bodyText, /Runtime\s*:\s*([\d.]+\s*ms)/i);
+      const runtimePercentile = this.extractStat(bodyText, /Beats\s*([\d.]+)\s*%/i, true);
+      const memory = this.extractStat(bodyText, /Memory\s*:\s*([\d.]+\s*MB)/i);
+      const memoryPercentile = this.extractStat(bodyText, /Beats\s*([\d.]+)\s*%/i, true, true);
 
       return {
         title,
@@ -158,7 +158,9 @@
       if (!language || language === 'Unknown') {
         try {
           language = window.localStorage.getItem('global_lang') || 'Unknown';
-        } catch (e) { }
+        } catch {
+          language = 'Unknown';
+        }
       }
 
       const normLang = this.normalizeLang(language, languages);
@@ -168,13 +170,13 @@
     normalizeLang(lang, languages) {
       if (!lang || lang === 'Unknown') return 'Unknown';
       const cleanLang = lang.trim().toLowerCase();
-      
+
       for (const [name, ext] of Object.entries(languages)) {
         if (name.toLowerCase() === cleanLang || ext.replace('.', '') === cleanLang) {
           return name;
         }
       }
-      
+
       return lang.trim();
     },
 
@@ -213,7 +215,7 @@
 
       // Clean up LeetCode's messy CSS classes and styles but KEEP the HTML structure
       text = text.replace(/ (class|id|style)="[^"]*"/g, '');
-      text = text.replace(/ data-[a-zA-Z0-9\-]+="[^"]*"/g, '');
+      text = text.replace(/ data-[a-zA-Z0-9-]+="[^"]*"/g, '');
 
       return text.trim();
     },

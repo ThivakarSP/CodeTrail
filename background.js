@@ -422,7 +422,7 @@ async function processSubmissionQueue() {
         total: total,
         current: item.titleSlug,
       })
-      .catch(() => { });
+      .catch(() => {});
 
     // Notify "syncing"
     await sendSyncStatus(item.tabId, 'syncing', `Syncing "${item.title}"...`);

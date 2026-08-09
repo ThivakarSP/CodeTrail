@@ -31,16 +31,20 @@
   function init() {
     // Track intentional submit actions (click or keyboard) to prevent false popups on old submissions
     document.addEventListener('click', (e) => {
-        const btn = e.target.closest('button');
-        if (btn && (btn.innerText.toLowerCase().includes('submit') || btn.getAttribute('data-e2e-locator') === 'console-submit-button')) {
-            sessionStorage.setItem('ct_last_submit_time', Date.now());
-        }
+      const btn = e.target.closest('button');
+      if (
+        btn &&
+        (btn.innerText.toLowerCase().includes('submit') ||
+          btn.getAttribute('data-e2e-locator') === 'console-submit-button')
+      ) {
+        sessionStorage.setItem('ct_last_submit_time', Date.now());
+      }
     });
-    
+
     document.addEventListener('keydown', (e) => {
-        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-            sessionStorage.setItem('ct_last_submit_time', Date.now());
-        }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        sessionStorage.setItem('ct_last_submit_time', Date.now());
+      }
     });
 
     // Initial check for result (in case of page reload on result)
@@ -110,7 +114,8 @@
           data.memoryPercentile = apiData.memoryPercentile || data.memoryPercentile;
           // Normalize timestamp safely (LeetCode uses seconds, JS uses ms)
           if (apiData.timestamp) {
-            data.timestamp = apiData.timestamp < 10000000000 ? apiData.timestamp * 1000 : apiData.timestamp;
+            data.timestamp =
+              apiData.timestamp < 10000000000 ? apiData.timestamp * 1000 : apiData.timestamp;
           } else {
             data.timestamp = Date.now();
           }
@@ -137,9 +142,9 @@
 
             // Merge tags if missing
             if ((!data.tags || data.tags.length === 0) && apiData.question.topicTags) {
-              data.tags = apiData.question.topicTags.map(t => t.name);
+              data.tags = apiData.question.topicTags.map((t) => t.name);
             }
-            
+
             // Use API HTML content for perfectly formatted READMEs
             if (apiData.question.content) {
               data.readmeDescription = apiData.question.content;
@@ -148,12 +153,15 @@
 
           // Language normalizer
           if (apiData.lang) {
-            const langName = typeof apiData.lang === 'object' ? apiData.lang.verboseName || apiData.lang.name : apiData.lang;
+            const langName =
+              typeof apiData.lang === 'object'
+                ? apiData.lang.verboseName || apiData.lang.name
+                : apiData.lang;
             data.language = CT.scraper.normalizeLang(langName, LANGUAGES);
           }
         }
       } else if (data.titleSlug && data.titleSlug !== 'unknown-problem') {
-        // If we don't have a submissionId (e.g. submitting on the main problem page), 
+        // If we don't have a submissionId (e.g. submitting on the main problem page),
         // fetch the problem details via API to guarantee we get the title, tags, and formatted README
         const questionData = await CT.api.fetchProblemDetails(data.titleSlug);
         if (questionData) {
@@ -164,7 +172,7 @@
           }
           data.difficulty = questionData.difficulty || data.difficulty;
           if ((!data.tags || data.tags.length === 0) && questionData.topicTags) {
-            data.tags = questionData.topicTags.map(t => t.name);
+            data.tags = questionData.topicTags.map((t) => t.name);
           }
           if (questionData.content) {
             data.readmeDescription = questionData.content;
@@ -183,8 +191,10 @@
       // 2.5 Prevent multiple popups for the exact same code on the exact same problem
       // Uses chrome.storage.local so the history survives page reloads
       const currentKey = `${data.titleSlug}|${data.code}`;
-      
-      const cacheObj = await new Promise(resolve => chrome.storage.local.get(['CT_SYNCED_CACHE'], resolve));
+
+      const cacheObj = await new Promise((resolve) =>
+        chrome.storage.local.get(['CT_SYNCED_CACHE'], resolve)
+      );
       const cache = cacheObj.CT_SYNCED_CACHE || {};
       const cacheKey = submissionId ? `sub_${submissionId}` : currentKey;
 
@@ -193,27 +203,29 @@
         submissionInProgress = false;
         return;
       }
-      
+
       if (!data.code || data.code.trim() === '') {
-         // Code hasn't loaded or isn't available, abort to prevent bad sync
-         CT.modal.hideModal();
-         submissionInProgress = false;
-         return;
+        // Code hasn't loaded or isn't available, abort to prevent bad sync
+        CT.modal.hideModal();
+        submissionInProgress = false;
+        return;
       }
-      
+
       // 2.6 Prevent auto-popup when viewing old past submissions
       // If the API failed to return a timestamp, ageInMinutes will be NaN, which would bypass the check.
       // So we fallback to checking if they actually clicked the 'Submit' button in the last 2 minutes.
       let ageInMinutes = (Date.now() - data.timestamp) / (1000 * 60);
-      
+
       if (isNaN(ageInMinutes)) {
-         const lastSubmitTime = parseInt(sessionStorage.getItem('ct_last_submit_time') || '0', 10);
-         const minsSinceSubmitClick = (Date.now() - lastSubmitTime) / 60000;
-         ageInMinutes = minsSinceSubmitClick < 2 ? 0 : 999; 
+        const lastSubmitTime = parseInt(sessionStorage.getItem('ct_last_submit_time') || '0', 10);
+        const minsSinceSubmitClick = (Date.now() - lastSubmitTime) / 60000;
+        ageInMinutes = minsSinceSubmitClick < 2 ? 0 : 999;
       }
 
       if (ageInMinutes > 10) {
-        console.log(`CodeTrail: Submission is too old (${ageInMinutes.toFixed(1)} mins). Skipping auto-sync.`);
+        console.log(
+          `CodeTrail: Submission is too old (${ageInMinutes.toFixed(1)} mins). Skipping auto-sync.`
+        );
         CT.modal.hideModal();
         submissionInProgress = false;
         return;
