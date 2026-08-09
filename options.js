@@ -2,7 +2,6 @@
 // Handles configuration and connection testing using centralized storage
 
 import { getConfig, saveConfig, resetStats } from './utils/storage.js';
-import { testConnection } from './utils/github.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
   const form = document.getElementById('settingsForm');
@@ -91,14 +90,13 @@ document.addEventListener('DOMContentLoaded', async () => {
       await saveConfig({
         username,
         repo,
-        token
+        token,
       });
 
       showStatus('Settings saved successfully!', 'success');
 
       // Auto-test connection after save
       await handleTestConnection();
-
     } catch (error) {
       showStatus(`Failed to save: ${error.message}`, 'error');
     } finally {
@@ -124,9 +122,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     testBtn.textContent = 'Testing...';
 
     try {
-      // We can call testConnection directly since we are in a module and imported it
       // equivalent to messaging background but faster/direct
-      const response = await testConnection({ username, repo, token });
+      const response = await chrome.runtime.sendMessage({
+        type: 'TEST_CONNECTION',
+        config: { username, repo, token },
+      });
 
       if (response.success) {
         showStatus('Connection successful! Ready to sync.', 'success');
@@ -147,7 +147,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   const bulkStatusText = document.getElementById('bulkStatusText');
 
   bulkSyncBtn?.addEventListener('click', async () => {
-    if (!confirm('This will fetch all your solved problems and sync them to GitHub. This process happens in the background and may take some time. Continue?')) {
+    if (
+      !confirm(
+        'This will fetch all your solved problems and sync them to GitHub. This process happens in the background and may take some time. Continue?'
+      )
+    ) {
       return;
     }
 
@@ -182,8 +186,19 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Clear all stored data
   async function clearAllData() {
-    // Clear local storage
-    await new Promise(resolve => chrome.storage.local.clear(resolve));
+    // Preserve in-flight queues
+    const { codetrail_submission_queue, codetrail_bulk_queue } = await new Promise((r) =>
+      chrome.storage.local.get(['codetrail_submission_queue', 'codetrail_bulk_queue'], r)
+    );
+
+    await new Promise((resolve) => chrome.storage.local.clear(resolve));
+
+    // Restore queues if they had items
+    if (codetrail_submission_queue?.length || codetrail_bulk_queue?.length) {
+      await new Promise((r) =>
+        chrome.storage.local.set({ codetrail_submission_queue, codetrail_bulk_queue }, r)
+      );
+    }
 
     // Reset UI
     usernameInput.value = '';
@@ -204,5 +219,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     setTimeout(() => {
       statusMessage.style.display = 'none'; // Basic hide, CSS animation handles fade out if improved
     }, delay);
+  }
+});
+
+// Listen for bulk sync progress
+chrome.runtime.onMessage.addListener((message) => {
+  if (message.type === 'BULK_SYNC_PROGRESS') {
+    const statusDiv = document.getElementById('bulkStatus');
+    const statusText = document.getElementById('bulkStatusText');
+
+    statusDiv.style.display = 'block';
+    statusText.textContent = `Syncing: ${message.current} (${message.processed}/${message.total})`;
   }
 });

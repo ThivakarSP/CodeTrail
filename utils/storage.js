@@ -131,24 +131,6 @@ export async function saveStats(stats) {
  * Get sync history
  * @returns {Promise<Array>}
  */
-export async function getSyncHistory() {
-  const result = await getStorage([KEYS.HISTORY, LEGACY_KEYS.HISTORY_OLD]);
-
-  if (result[KEYS.HISTORY]) {
-    return result[KEYS.HISTORY];
-  }
-
-  // Migrate history
-  if (result[LEGACY_KEYS.HISTORY_OLD]) {
-    const oldHistory = result[LEGACY_KEYS.HISTORY_OLD];
-    await setStorage({ [KEYS.HISTORY]: oldHistory });
-    await removeStorage([LEGACY_KEYS.HISTORY_OLD]);
-    return oldHistory;
-  }
-
-  return [];
-}
-
 /**
  * Add an entry to sync history
  * @param {Object} entry
@@ -157,17 +139,69 @@ export async function getSyncHistory() {
 export async function addSyncHistoryEntry(entry) {
   const history = await getSyncHistory();
 
+  // Validate entry
+  if (!entry.title || entry.title === 'Unknown Problem' || entry.title.includes('Unknown')) {
+    console.warn('CodeTrail: Attempted to save invalid history entry', entry);
+    return;
+  }
+
   // Prevent duplicates (check by submissionId if available, else by title + timestamp)
-  const isDuplicate = history.some(h =>
-    (entry.submissionId && h.submissionId === entry.submissionId) ||
-    (h.title === entry.title && Math.abs(h.timestamp - entry.timestamp) < 1000)
+  const isDuplicate = history.some(
+    (h) =>
+      (entry.submissionId && h.submissionId === entry.submissionId) ||
+      (h.title === entry.title && Math.abs(h.timestamp - entry.timestamp) < 1000)
   );
 
   if (isDuplicate) return;
 
+  // Normalize timestamp (seconds to ms)
+  if (entry.timestamp && entry.timestamp < 10000000000) {
+    entry.timestamp = entry.timestamp * 1000;
+  } else if (!entry.timestamp) {
+    entry.timestamp = Date.now();
+  }
+
   history.unshift(entry);
-  // Removed limit: const trimmed = history.slice(0, 100); 
-  await setStorage({ [KEYS.HISTORY]: history });
+  const trimmed = history.slice(0, 500);
+  await setStorage({ [KEYS.HISTORY]: trimmed });
+}
+
+/**
+ * Get sync history with auto-cleanup of invalid entries
+ * @returns {Promise<Array>}
+ */
+export async function getSyncHistory() {
+  const result = await getStorage([KEYS.HISTORY, LEGACY_KEYS.HISTORY_OLD]);
+
+  let history = [];
+
+  if (result[KEYS.HISTORY]) {
+    history = result[KEYS.HISTORY];
+  } else if (result[LEGACY_KEYS.HISTORY_OLD]) {
+    // Migrate history
+    history = result[LEGACY_KEYS.HISTORY_OLD];
+    await setStorage({ [KEYS.HISTORY]: history });
+    await removeStorage([LEGACY_KEYS.HISTORY_OLD]);
+  }
+
+  // Filter out invalid/temporary entries (Fix for "Unknown Problem" showing up)
+  // Also normalize timestamps (seconds to ms conversion if needed)
+  const validHistory = history
+    .filter((h) => h.title && h.title !== 'Unknown Problem' && !h.title.includes('Unknown Unknown'))
+    .map((h) => {
+      // If timestamp is in seconds (10 digits), convert to ms (13 digits)
+      if (h.timestamp && h.timestamp < 10000000000) {
+        return { ...h, timestamp: h.timestamp * 1000 };
+      }
+      return h;
+    });
+
+  // If we filtered or normalized something, save the cleaned version
+  if (validHistory.length !== history.length || JSON.stringify(validHistory) !== JSON.stringify(history)) {
+    await setStorage({ [KEYS.HISTORY]: validHistory });
+  }
+
+  return validHistory;
 }
 
 /**
@@ -241,18 +275,18 @@ export async function getAnalytics() {
 
   // Helper to count UNIQUE slugs
   const countUnique = (entries) => {
-    const slugs = new Set(entries.map(e => e.folderName || e.title)); // Use folderName as slug standard
+    const slugs = new Set(entries.map((e) => e.folderName || e.titleSlug || e.title)); // Use folderName as slug standard
     return slugs.size;
   };
 
-  const weeklyEntries = history.filter(h => h.timestamp >= startOfWeek.getTime());
-  const monthlyEntries = history.filter(h => h.timestamp >= startOfMonth.getTime());
-  const yearlyEntries = history.filter(h => h.timestamp >= startOfYear.getTime());
+  const weeklyEntries = history.filter((h) => h.timestamp >= startOfWeek.getTime());
+  const monthlyEntries = history.filter((h) => h.timestamp >= startOfMonth.getTime());
+  const yearlyEntries = history.filter((h) => h.timestamp >= startOfYear.getTime());
 
   return {
     weekly: countUnique(weeklyEntries),
     monthly: countUnique(monthlyEntries),
-    yearly: countUnique(yearlyEntries)
+    yearly: countUnique(yearlyEntries),
   };
 }
 

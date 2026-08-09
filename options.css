@@ -1,5 +1,6 @@
-/* CodeTrail Options Page Styles */
+@import 'styles/tokens.css';
 
+/* CodeTrail Options Page Styles */
 :root {
   --bg-dark: #0f0f23;
   --bg-card: rgba(255, 255, 255, 0.03);
@@ -19,8 +20,10 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: linear-gradient(135deg, var(--bg-dark) 0%, #1a1a2e 50%, #16213e 100%);
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-family);
+  background-color: var(--bg-primary);
   color: var(--text-primary);
   min-height: 100vh;
   line-height: 1.6;

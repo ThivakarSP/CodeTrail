@@ -38,7 +38,7 @@ describe('GitHub Utils', () => {
 
       const result = await testConnection(mockConfig);
       expect(result.success).toBe(false);
-      expect(result.error).toContain('Invalid token');
+      expect(result.error).toMatch(/Invalid.*Token/i);
     });
 
     it('should return error on 404 Not Found', async () => {

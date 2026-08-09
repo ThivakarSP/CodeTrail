@@ -1,4 +1,4 @@
-# LeetHub Extension .gitignore
+# CodeTrail Extension .gitignore
 
 # IDE
 .vscode/
@@ -16,3 +16,15 @@ desktop.ini
 node_modules/
 dist/
 *.zip
+
+# Test output
+coverage/
+test-results*.json
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+
+# Development Scripts and Tools
+resize.ps1
+.gemini/

@@ -1,11 +1,11 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>CodeTrail</title>
-  <link rel="stylesheet" href="popup.css">
+  <link rel="stylesheet" href="popup.css" />
 </head>
 
 <body>
@@ -14,7 +14,7 @@
       <div class="header-top">
         <div class="logo">
           <span class="logo-icon">🚀</span>
-          <h1>CodeTrail</h1>
+          <p>CodeTrail v2.0.0 • Made for LeetCoders</p>
         </div>
         <div class="status-indicator" id="statusIndicator">
           <span class="status-dot"></span>
@@ -34,7 +34,7 @@
         <label class="toggle-label">
           <span>Enable CodeTrail</span>
           <div class="toggle-switch">
-            <input type="checkbox" id="enableToggle">
+            <input type="checkbox" id="enableToggle" />
             <span class="toggle-slider"></span>
           </div>
         </label>
@@ -80,13 +80,16 @@
           </div>
         </div>
 
-        <button class="btn-reset-stats" id="resetStats" title="Reset statistics" style="margin-top: 15px;">Reset
-          Stats</button>
+        <button class="btn-reset-stats" id="resetStats" title="Reset statistics" aria-label="Reset statistics"
+          style="margin-top: 15px">
+          Reset Stats
+        </button>
       </div>
 
       <!-- History Section -->
       <div class="history-section">
         <h2>Recent Syncs</h2>
+
         <div id="historyList" class="history-list">
           <!-- Injected by JS -->
           <div class="empty-state">
@@ -98,9 +101,10 @@
     </main>
 
     <footer>
-      <a href="#" id="openOptionsLink">Settings</a>
-      <a href="#" id="openRepoLink" class="repo-link" style="display: none;">Open Repository</a>
-      <span class="version">v1.1.0</span>
+      <a href="#" id="openOptionsLink" aria-label="Open settings">Settings</a>
+      <a href="#" id="openRepoLink" class="repo-link" aria-label="Open repository" style="display: none">Open
+        Repository</a>
+      <span class="version">v2.0.0</span>
     </footer>
   </div>
 

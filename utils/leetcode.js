@@ -8,27 +8,10 @@ const LEETCODE_GRAPHQL_URL = 'https://leetcode.com/graphql';
  * @returns {Promise<Array>} List of solved problem slugs
  */
 export async function fetchSolvedQuestions() {
-    const query = `
-    query userSessionProgress($username: String!) {
-        allQuestionsCount {
-            difficulty
-            count
-        }
-        matchedUser(username: $username) {
-            submitStats {
-                acSubmissionNum {
-                    difficulty
-                    count
-                    submissions
-                }
-            }
-        }
-    }`;
+  // Note: To get the actual LIST of solved problems, we need a different query.
+  // The "problemsetQuestionList" query is better for this.
 
-    // Note: To get the actual LIST of solved problems, we need a different query.
-    // The "problemsetQuestionList" query is better for this.
-
-    const listQuery = `
+  const listQuery = `
     query problemsetQuestionList($categorySlug: String, $limit: Int, $skip: Int, $filters: QuestionListFilterInput) {
         problemsetQuestionList: questionList(
             categorySlug: $categorySlug
@@ -47,65 +30,65 @@ export async function fetchSolvedQuestions() {
         }
     }`;
 
-    // We need to fetch in pages.
-    // However, LeetCode's API is tricky. A better approach for "All Solved" is:
-    // query: userProfileQuestions 
+  // We need to fetch in pages.
+  // However, LeetCode's API is tricky. A better approach for "All Solved" is:
+  // query: userProfileQuestions
 
-    // Let's use the query that returns the user's recent AC submissions or similar.
-    // Actually, "status=AC" filter on questionList is the standard way.
+  // Let's use the query that returns the user's recent AC submissions or similar.
+  // Actually, "status=AC" filter on questionList is the standard way.
 
-    let allQuestions = [];
-    let limit = 100;
-    let skip = 0;
-    let hasMore = true;
+  let allQuestions = [];
+  let limit = 100;
+  let skip = 0;
+  let hasMore = true;
 
-    try {
-        while (hasMore) {
-            const response = await fetch(LEETCODE_GRAPHQL_URL, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    // The extension's cookies are automatically sent if host_permissions includes leetcode.com
-                },
-                body: JSON.stringify({
-                    query: listQuery,
-                    variables: {
-                        categorySlug: "",
-                        limit: limit,
-                        skip: skip,
-                        filters: { status: "AC" }
-                    }
-                })
-            });
+  try {
+    while (hasMore) {
+      const response = await fetch(LEETCODE_GRAPHQL_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          // The extension's cookies are automatically sent if host_permissions includes leetcode.com
+        },
+        body: JSON.stringify({
+          query: listQuery,
+          variables: {
+            categorySlug: '',
+            limit: limit,
+            skip: skip,
+            filters: { status: 'AC' },
+          },
+        }),
+      });
 
-            if (!response.ok) throw new Error(`LeetCode API Error: ${response.status}`);
+      if (!response.ok) throw new Error(`LeetCode API Error: ${response.status}`);
 
-            const data = await response.json();
-            if (data.errors) throw new Error(data.errors[0].message);
+      const data = await response.json();
+      if (data.errors) throw new Error(data.errors[0].message);
 
-            const questions = data.data.problemsetQuestionList.questions;
-            if (questions.length === 0) {
-                hasMore = false;
-            } else {
-                allQuestions = allQuestions.concat(questions);
-                skip += limit;
-                // Safety break
-                if (allQuestions.length >= 2000) hasMore = false;
-            }
-        }
-        return allQuestions;
-    } catch (error) {
-        console.error('CodeTrail: Failed to fetch solved questions', error);
-        throw error;
+      const questions = data.data.problemsetQuestionList.questions;
+      if (questions.length === 0) {
+        hasMore = false;
+      } else {
+        allQuestions = allQuestions.concat(questions);
+        skip += limit;
+        // Safety break
+        if (allQuestions.length >= 5000) hasMore = false;
+      }
     }
+    return allQuestions;
+  } catch (error) {
+    console.error('CodeTrail: Failed to fetch solved questions', error);
+    throw error;
+  }
 }
 
 /**
  * Fetch the latest accepted submission for a problem
- * @param {string} titleSlug 
+ * @param {string} titleSlug
  */
 export async function fetchSubmissionDetails(titleSlug) {
-    const query = `
+  const query = `
     query submissionList($offset: Int!, $limit: Int!, $lastKey: String, $questionSlug: String!) {
         submissionList(offset: $offset, limit: $limit, lastKey: $lastKey, questionSlug: $questionSlug) {
             submissions {
@@ -120,39 +103,39 @@ export async function fetchSubmissionDetails(titleSlug) {
         }
     }`;
 
-    try {
-        const response = await fetch(LEETCODE_GRAPHQL_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                query: query,
-                variables: {
-                    questionSlug: titleSlug,
-                    offset: 0,
-                    limit: 20
-                }
-            })
-        });
+  try {
+    const response = await fetch(LEETCODE_GRAPHQL_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        query: query,
+        variables: {
+          questionSlug: titleSlug,
+          offset: 0,
+          limit: 20,
+        },
+      }),
+    });
 
-        const data = await response.json();
-        const submissions = data.data?.submissionList?.submissions || [];
+    const data = await response.json();
+    const submissions = data.data?.submissionList?.submissions || [];
 
-        // Find first AC
-        const accepted = submissions.find(s => s.statusDisplay === 'Accepted');
-        if (!accepted) return null;
+    // Find first AC
+    const accepted = submissions.find((s) => s.statusDisplay === 'Accepted');
+    if (!accepted) return null;
 
-        // Now we need the CODE for this submission.
-        // We need another query: submissionDetails
+    // Now we need the CODE for this submission.
+    // We need another query: submissionDetails
 
-        return await fetchSubmissionCode(accepted.id, accepted);
-    } catch (error) {
-        console.error(`CodeTrail: Error fetching submissions for ${titleSlug}`, error);
-        return null;
-    }
+    return await fetchSubmissionCode(accepted.id, accepted);
+  } catch (error) {
+    console.error(`CodeTrail: Error fetching submissions for ${titleSlug}`, error);
+    return null;
+  }
 }
 
 async function fetchSubmissionCode(submissionId, metadata) {
-    const query = `
+  const query = `
     query submissionDetails($submissionId: Int!) {
         submissionDetails(submissionId: $submissionId) {
             code
@@ -175,37 +158,37 @@ async function fetchSubmissionCode(submissionId, metadata) {
         }
     }`;
 
-    const response = await fetch(LEETCODE_GRAPHQL_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            query: query,
-            variables: { submissionId: parseInt(submissionId) }
-        })
-    });
+  const response = await fetch(LEETCODE_GRAPHQL_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      query: query,
+      variables: { submissionId: parseInt(submissionId) },
+    }),
+  });
 
-    const data = await response.json();
-    const details = data.data?.submissionDetails;
+  const data = await response.json();
+  const details = data.data?.submissionDetails;
 
-    if (!details) return null;
+  if (!details) return null;
 
-    // Normalize to standard format expected by our background worker
-    return {
-        submissionId: submissionId,
-        title: details.question.title,
-        titleSlug: details.question.titleSlug, // Save slug for uniqueness checks
-        number: details.question.questionId,
-        difficulty: details.question.difficulty,
-        language: details.lang.name,
-        code: details.code,
-        tags: details.question.topicTags.map(t => t.name),
-        timestamp: details.timestamp * 1000, // LeetCode is seconds, JS is ms
-        runtime: metadata.runtime,
-        memory: metadata.memory,
-        url: `https://leetcode.com/problems/${details.question.titleSlug}/`,
-        readme: null, // We might need to generate this? 
-        // Actually, content.js generates readme from DOM. 
-        // We can simple use the 'content' field from GraphQL and parse it!
-        descriptionHtml: details.question.content
-    };
+  // Normalize to standard format expected by our background worker
+  return {
+    submissionId: submissionId,
+    title: details.question.title,
+    titleSlug: details.question.titleSlug, // Save slug for uniqueness checks
+    number: details.question.questionId,
+    difficulty: details.question.difficulty,
+    language: details.lang.name,
+    code: details.code,
+    tags: details.question.topicTags.map((t) => t.name),
+    timestamp: details.timestamp * 1000, // LeetCode is seconds, JS is ms
+    runtime: metadata.runtime,
+    memory: metadata.memory,
+    url: `https://leetcode.com/problems/${details.question.titleSlug}/`,
+    readme: null, // Will be generated in background.js before push
+    readmeDescription: details.question.content || '',
+    descriptionHtml: details.question.content,
+    folderName: `${details.question.questionId.padStart(4, '0')}-${details.question.titleSlug}`,
+  };
 }

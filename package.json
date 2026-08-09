@@ -1,18 +1,20 @@
 {
   "name": "codetrail",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "main": "background.js",
   "type": "module",
   "scripts": {
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "test:e2e": "playwright test",
     "lint": "eslint .",
     "format": "prettier --write ."
   },
   "keywords": [],
-  "author": "",
+  "author": "ThivakarSP",
   "license": "ISC",
-  "description": "",
+  "description": "Automatically sync your LeetCode solutions to GitHub with topic-based organization",
   "devDependencies": {
+    "@playwright/test": "^1.62.1",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-jest": "^29.13.0",

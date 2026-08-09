@@ -7,68 +7,68 @@ import { getConfig, getStats, resetStats, getSyncHistory, saveConfig } from './u
 const escapeElement = document.createElement('div');
 
 document.addEventListener('DOMContentLoaded', async () => {
-    const statusIndicator = document.getElementById('statusIndicator');
-    const configCard = document.getElementById('configCard');
-    const enableToggle = document.getElementById('enableToggle');
-    const historyList = document.getElementById('historyList');
-    const openOptionsBtn = document.getElementById('openOptions');
-    const openOptionsLink = document.getElementById('openOptionsLink');
-    const openRepoLink = document.getElementById('openRepoLink');
-    const resetStatsBtn = document.getElementById('resetStats');
+  const statusIndicator = document.getElementById('statusIndicator');
+  const configCard = document.getElementById('configCard');
+  const enableToggle = document.getElementById('enableToggle');
+  const historyList = document.getElementById('historyList');
+  const openOptionsBtn = document.getElementById('openOptions');
+  const openOptionsLink = document.getElementById('openOptionsLink');
+  const openRepoLink = document.getElementById('openRepoLink');
+  const resetStatsBtn = document.getElementById('resetStats');
 
-    // Stats elements
-    const statTotal = document.getElementById('statTotal');
-    const statEasy = document.getElementById('statEasy');
-    const statMedium = document.getElementById('statMedium');
-    const statHard = document.getElementById('statHard');
+  // Stats elements
+  const statTotal = document.getElementById('statTotal');
+  const statEasy = document.getElementById('statEasy');
+  const statMedium = document.getElementById('statMedium');
+  const statHard = document.getElementById('statHard');
 
-    // Initialize UI
-    try {
-        await renderConfig();
-        await renderStats();
-        await renderAnalytics();
-        await renderHistory();
-    } catch (error) {
-        console.error('CodeTrail: Error initializing popup:', error);
+  // Initialize UI
+  try {
+    await renderConfig();
+    await renderStats();
+    await renderAnalytics();
+    await renderHistory();
+  } catch (error) {
+    console.error('CodeTrail: Error initializing popup:', error);
+  }
+
+  // Event Listeners
+  openOptionsBtn?.addEventListener('click', openOptionsPage);
+  openOptionsLink?.addEventListener('click', (e) => {
+    e.preventDefault();
+    openOptionsPage();
+  });
+
+  enableToggle?.addEventListener('change', async () => {
+    const config = await getConfig();
+    config.enabled = enableToggle.checked;
+    await saveConfig({ enabled: enableToggle.checked });
+    updateStatusIndicator(enableToggle.checked);
+  });
+
+  resetStatsBtn?.addEventListener('click', async () => {
+    if (confirm('Are you sure you want to reset your statistics? This cannot be undone.')) {
+      await resetStats();
+      await renderStats();
     }
+  });
 
-    // Event Listeners
-    openOptionsBtn?.addEventListener('click', openOptionsPage);
-    openOptionsLink?.addEventListener('click', (e) => {
-        e.preventDefault();
-        openOptionsPage();
-    });
+  openRepoLink?.addEventListener('click', async (e) => {
+    e.preventDefault();
+    const config = await getConfig();
+    if (config.username && config.repo) {
+      chrome.tabs.create({
+        url: `https://github.com/${config.username}/${config.repo}`,
+      });
+    }
+  });
 
-    enableToggle?.addEventListener('change', async () => {
-        const config = await getConfig();
-        config.enabled = enableToggle.checked;
-        await saveConfig({ enabled: enableToggle.checked });
-        updateStatusIndicator(enableToggle.checked);
-    });
+  // Render Functions
+  async function renderConfig() {
+    const config = await getConfig();
 
-    resetStatsBtn?.addEventListener('click', async () => {
-        if (confirm('Are you sure you want to reset your statistics? This cannot be undone.')) {
-            await resetStats();
-            await renderStats();
-        }
-    });
-
-    openRepoLink?.addEventListener('click', async (e) => {
-        e.preventDefault();
-        const config = await getConfig();
-        if (config.username && config.repo) {
-            chrome.tabs.create({
-                url: `https://github.com/${config.username}/${config.repo}`,
-            });
-        }
-    });
-
-    // Render Functions
-    async function renderConfig() {
-        const config = await getConfig();
-
-        if (config.token && config.username && config.repo) {
-            configCard.innerHTML = `
+    if (config.token && config.username && config.repo) {
+      configCard.innerHTML = `
                 <div class="config-icon"></div>
                 <div class="config-info">
                     <h3>Connected</h3>
@@ -77,12 +77,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <button class="btn-configure" id="openOptions">Settings</button>
             `;
 
-            // Re-attach listener to new button
-            document.getElementById('openOptions')?.addEventListener('click', openOptionsPage);
+      // Re-attach listener to new button
+      document.getElementById('openOptions')?.addEventListener('click', openOptionsPage);
 
-            openRepoLink.style.display = 'inline-block';
-        } else {
-            configCard.innerHTML = `
+      openRepoLink.style.display = 'inline-block';
+    } else {
+      configCard.innerHTML = `
                 <div class="config-icon">⚠️</div>
                 <div class="config-info">
                     <h3>Not Connected</h3>
@@ -90,54 +90,56 @@ document.addEventListener('DOMContentLoaded', async () => {
                 </div>
                 <button class="btn-configure" id="openOptions">Connect</button>
             `;
-            document.getElementById('openOptions')?.addEventListener('click', openOptionsPage);
-            openRepoLink.style.display = 'none';
-        }
-
-        if (enableToggle) {
-            enableToggle.checked = config.enabled;
-            updateStatusIndicator(config.enabled);
-        }
+      document.getElementById('openOptions')?.addEventListener('click', openOptionsPage);
+      openRepoLink.style.display = 'none';
     }
 
-    async function renderStats() {
-        const stats = await getStats();
-
-        statTotal.textContent = stats.total || 0;
-        statEasy.textContent = stats.easy || 0;
-        statMedium.textContent = stats.medium || 0;
-        statHard.textContent = stats.hard || 0;
+    if (enableToggle) {
+      enableToggle.checked = config.enabled;
+      updateStatusIndicator(config.enabled);
     }
+  }
 
-    async function renderAnalytics() {
-        // Dynamic import to avoid issues if utils/storage.js isn't fully updated in cache
-        const { getAnalytics } = await import('./utils/storage.js');
-        const analytics = await getAnalytics();
+  async function renderStats() {
+    const stats = await getStats();
 
-        document.getElementById('statWeekly').textContent = analytics.weekly || 0;
-        document.getElementById('statMonthly').textContent = analytics.monthly || 0;
-        document.getElementById('statYearly').textContent = analytics.yearly || 0;
-    }
+    statTotal.textContent = stats.total || 0;
+    statEasy.textContent = stats.easy || 0;
+    statMedium.textContent = stats.medium || 0;
+    statHard.textContent = stats.hard || 0;
+  }
 
-    async function renderHistory() {
-        const history = await getSyncHistory();
+  async function renderAnalytics() {
+    // Dynamic import to avoid issues if utils/storage.js isn't fully updated in cache
+    const { getAnalytics } = await import('./utils/storage.js');
+    const analytics = await getAnalytics();
 
-        if (history.length === 0) {
-            historyList.innerHTML = `
+    document.getElementById('statWeekly').textContent = analytics.weekly || 0;
+    document.getElementById('statMonthly').textContent = analytics.monthly || 0;
+    document.getElementById('statYearly').textContent = analytics.yearly || 0;
+  }
+
+  async function renderHistory() {
+    const history = await getSyncHistory();
+
+    if (history.length === 0) {
+      historyList.innerHTML = `
                 <div class="empty-state">
                     <span class="empty-icon"></span>
                     <p>No synced problems yet</p>
                 </div>
             `;
-            return;
-        }
+      return;
+    }
 
-        historyList.innerHTML = history
-            .map(
-                (item) => `
+    historyList.innerHTML = history
+      .map((item) => {
+        const safeUrl = item.url?.startsWith('https://leetcode.com/') ? item.url : '#';
+
+        return `
             <div class="history-item">
                 <div class="history-main">
-                    <a href="${item.url}" target="_blank" class="history-title" title="${escapeHtml(item.title)}">
+                    <a href="${safeUrl}" target="_blank" class="history-title" title="${escapeHtml(item.title)}">
                         ${item.number ? item.number + '. ' : ''}${escapeHtml(item.title)}
                     </a>
                     <div class="history-meta">
@@ -150,61 +152,61 @@ document.addEventListener('DOMContentLoaded', async () => {
                     ${formatTime(item.timestamp)}
                 </div>
             </div>
-        `
-            )
-            .join('');
+                `;
+      })
+      .join('');
+  }
+
+  function updateStatusIndicator(enabled) {
+    const dot = statusIndicator.querySelector('.status-dot');
+    const text = statusIndicator.querySelector('.status-text');
+
+    if (enabled) {
+      dot.classList.add('active');
+      dot.classList.remove('inactive');
+      text.textContent = 'Active';
+    } else {
+      dot.classList.add('inactive');
+      dot.classList.remove('active');
+      text.textContent = 'Disabled';
     }
+  }
 
-    function updateStatusIndicator(enabled) {
-        const dot = statusIndicator.querySelector('.status-dot');
-        const text = statusIndicator.querySelector('.status-text');
+  function openOptionsPage() {
+    chrome.runtime.openOptionsPage();
+  }
 
-        if (enabled) {
-            dot.classList.add('active');
-            dot.classList.remove('inactive');
-            text.textContent = 'Active';
-        } else {
-            dot.classList.add('inactive');
-            dot.classList.remove('active');
-            text.textContent = 'Disabled';
-        }
+  // Utility Functions
+  function escapeHtml(text) {
+    if (!text) return '';
+    escapeElement.textContent = text;
+    return escapeElement.innerHTML;
+  }
+
+  function getDifficultyClass(difficulty) {
+    switch (difficulty?.toLowerCase()) {
+      case 'easy':
+        return 'easy';
+      case 'medium':
+        return 'medium';
+      case 'hard':
+        return 'hard';
+      default:
+        return '';
     }
+  }
 
-    function openOptionsPage() {
-        chrome.runtime.openOptionsPage();
-    }
+  function formatTime(timestamp) {
+    if (!timestamp) return '';
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diff = now - date;
 
-    // Utility Functions
-    function escapeHtml(text) {
-        if (!text) return '';
-        escapeElement.textContent = text;
-        return escapeElement.innerHTML;
-    }
+    if (diff < 60000) return 'Just now';
+    if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+    if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+    if (diff < 604800000) return `${Math.floor(diff / 86400000)}d ago`;
 
-    function getDifficultyClass(difficulty) {
-        switch (difficulty?.toLowerCase()) {
-            case 'easy':
-                return 'easy';
-            case 'medium':
-                return 'medium';
-            case 'hard':
-                return 'hard';
-            default:
-                return '';
-        }
-    }
-
-    function formatTime(timestamp) {
-        if (!timestamp) return '';
-        const date = new Date(timestamp);
-        const now = new Date();
-        const diff = now - date;
-
-        if (diff < 60000) return 'Just now';
-        if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
-        if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
-        if (diff < 604800000) return `${Math.floor(diff / 86400000)}d ago`;
-
-        return date.toLocaleDateString();
-    }
+    return date.toLocaleDateString();
+  }
 });

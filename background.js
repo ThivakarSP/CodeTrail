@@ -9,11 +9,14 @@ import {
   getProblemIndex,
 } from './utils/storage.js';
 import { fetchSolvedQuestions, fetchSubmissionDetails } from './utils/leetcode.js';
+import { generateReadme } from './utils/readme.js';
 
 const ALARM_NAME = 'process_submission_queue';
 const QUEUE_KEY = 'codetrail_submission_queue';
 const BULK_ALARM_NAME = 'process_bulk_queue';
 const BULK_QUEUE_KEY = 'codetrail_bulk_queue';
+const PROCESS_SUBMISSION_NEXT_ALARM = 'process_submission_queue_next';
+const PROCESS_BULK_NEXT_ALARM = 'process_bulk_queue_next';
 
 // ============================================================
 // INITIALIZATION
@@ -38,11 +41,38 @@ chrome.runtime.onInstalled.addListener(() => {
 });
 
 chrome.alarms.onAlarm.addListener((alarm) => {
-  if (alarm.name === ALARM_NAME) {
+  if (alarm.name === ALARM_NAME || alarm.name === PROCESS_SUBMISSION_NEXT_ALARM) {
     processSubmissionQueue();
   }
-  if (alarm.name === BULK_ALARM_NAME) {
+  if (alarm.name === BULK_ALARM_NAME || alarm.name === PROCESS_BULK_NEXT_ALARM) {
     processBulkQueue();
+  }
+});
+
+// Track Window Position
+
+// ============================================================
+// MESSAGE HANDLERS
+// ============================================================
+
+let syncWindowId = null;
+
+chrome.windows.onBoundsChanged.addListener(async (win) => {
+  if (win.id === syncWindowId) {
+    await chrome.storage.local.set({
+      sync_window_bounds: {
+        left: win.left,
+        top: win.top,
+        width: win.width,
+        height: win.height,
+      },
+    });
+  }
+});
+
+chrome.windows.onRemoved.addListener((windowId) => {
+  if (windowId === syncWindowId) {
+    syncWindowId = null;
   }
 });
 
@@ -54,6 +84,68 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   const handleAsync = async () => {
     try {
       switch (message.type) {
+        case 'OPEN_SYNC_WINDOW': {
+          // Save data first
+          await chrome.storage.local.set({ pending_sync_data: message.data });
+
+          // Get saved bounds
+          const { sync_window_bounds } = await chrome.storage.local.get('sync_window_bounds');
+
+          const createOptions = {
+            url: 'sync_window.html',
+            type: 'popup',
+            focused: true,
+          };
+
+          if (sync_window_bounds) {
+            createOptions.left = sync_window_bounds.left;
+            createOptions.top = sync_window_bounds.top;
+            createOptions.width = sync_window_bounds.width;
+            createOptions.height = sync_window_bounds.height;
+          } else {
+            createOptions.width = 500;
+            createOptions.height = 600;
+          }
+
+          // Open window
+          const win = await chrome.windows.create(createOptions);
+          syncWindowId = win.id;
+          return { success: true };
+        }
+
+        case 'CONFIRM_SYNC': {
+          // Received enriched data from sync window
+          // We need to generate the final README here since we moved logic out of content.js
+          // Or we can rely on a helper.
+          // Let's attach the README generation logic here or import it.
+          // Since we can't easily import `generateReadmeWithRefs` from content.js (it's isolated),
+          // we should have moved it to a shared utils file.
+          // For now, I'll implement a simple reconstruct here or rely on the data passed.
+
+          const data = message.data;
+
+          // Reconstruct README using the data we have
+          // We need `generateReadmeWithRefs` logic.
+          // Since I cannot modify `utils/github.js` easily to include DOM parser dependent logic (Node vs Browser),
+          // I will implement a text-based generator here or import a new utility.
+          // Actually, `content.js` passed `readmeDescription` (markdown formatted).
+          // So we can build the README string here easily!
+
+          const readmeContent = generateReadme(data);
+          data.readme = readmeContent;
+
+          // Ensure timestamp is normalized (ms)
+          if (data.timestamp && data.timestamp < 10000000000) {
+            data.timestamp = data.timestamp * 1000;
+          } else if (!data.timestamp) {
+            data.timestamp = Date.now();
+          }
+
+          await handleSyncSubmission(data);
+          await updateStats(data.difficulty);
+          return { success: true };
+        }
+
         case 'SUBMISSION_DETECTED':
           await handleSubmissionDetected(message.data, sender.tab?.id);
           return { success: true };
@@ -116,7 +208,7 @@ async function saveBulkQueue(queue) {
 
 async function startBulkSync() {
   const config = await getConfig();
-  if (!config.username) throw new Error("GitHub not configured");
+  if (!config.username) throw new Error('GitHub not configured');
 
   // 1. Fetch all solved questions from LeetCode
   // We need the LeetCode username. Usually this is inferred from the session.
@@ -128,12 +220,14 @@ async function startBulkSync() {
 
     // 2. Filter out already synced questions
     const problemIndex = await getProblemIndex();
-    const existingSlugs = new Set(Object.values(problemIndex).map(p => p.folderName.replace(/^\d+-/, '')));
+    const existingSlugs = new Set(
+      Object.values(problemIndex).map((p) => p.folderName.replace(/^\d+-/, ''))
+    );
     // Note: heuristics for slug matching might be imperfect if folder naming changed.
     // Better: Use `titleSlug` if we stored it? We didn't explicitly store titleSlug in index.
     // Fallback: Check if `folderName` contains the slug.
 
-    const newQuestions = solvedQuestions.filter(q => {
+    const newQuestions = solvedQuestions.filter((q) => {
       // q.titleSlug e.g. "two-sum"
       // index check: "0001-two-sum" includes "two-sum"
 
@@ -148,17 +242,21 @@ async function startBulkSync() {
     console.log(`CodeTrail: ${newQuestions.length} new questions to sync.`);
 
     if (newQuestions.length === 0) {
-      return { success: true, count: 0, message: "All problems needed syncing are already synced!" };
+      return {
+        success: true,
+        count: 0,
+        message: 'All problems needed syncing are already synced!',
+      };
     }
 
     // 3. Add to Bulk Queue
     const queue = await getBulkQueue();
 
     // Avoid duplicates in the queue itself
-    const existingQueueSlugs = new Set(queue.map(q => q.titleSlug));
+    const existingQueueSlugs = new Set(queue.map((q) => q.titleSlug));
 
     let addedCount = 0;
-    newQuestions.forEach(q => {
+    newQuestions.forEach((q) => {
       if (!existingQueueSlugs.has(q.titleSlug)) {
         queue.push(q);
         addedCount++;
@@ -170,24 +268,24 @@ async function startBulkSync() {
     // Trigger processing
     processBulkQueue();
 
-    return { success: true, count: addedCount, message: `Added ${addedCount} problems to sync queue.` };
-
+    return {
+      success: true,
+      count: addedCount,
+      message: `Added ${addedCount} problems to sync queue.`,
+    };
   } catch (error) {
-    console.error("Bulk Sync Init Failed", error);
+    console.error('Bulk Sync Init Failed', error);
     throw error;
   }
 }
 
-let isBulkProcessing = false;
-
 async function processBulkQueue() {
-  if (isBulkProcessing) return;
-  isBulkProcessing = true;
+  if (await isProcessingActive('bulk')) return;
+  await setProcessingState('bulk', true);
 
   try {
     const queue = await getBulkQueue();
     if (queue.length === 0) {
-      isBulkProcessing = false;
       return;
     }
 
@@ -207,31 +305,30 @@ async function processBulkQueue() {
         queue.shift();
         await saveBulkQueue(queue);
       } else {
-        console.warn(`CodeTrail: No accepted submission found for ${question.titleSlug}, skipping.`);
+        console.warn(
+          `CodeTrail: No accepted submission found for ${question.titleSlug}, skipping.`
+        );
         // Remove anyway to avoid stuck queue
         queue.shift();
         await saveBulkQueue(queue);
       }
-
     } catch (error) {
       console.error(`CodeTrail: Error fetching details for ${question.titleSlug}`, error);
       // On error, maybe retry later? For now, skip to prevent blocking.
       queue.shift();
       await saveBulkQueue(queue);
     }
-
   } finally {
-    isBulkProcessing = false;
+    await setProcessingState('bulk', false);
 
     // Continue if more items
     const queue = await getBulkQueue();
     if (queue.length > 0) {
       // Delay to respect LeetCode API (e.g., 5 seconds between fetches)
-      setTimeout(processBulkQueue, 5000);
+      chrome.alarms.create(PROCESS_BULK_NEXT_ALARM, { delayInMinutes: 0.1 });
     }
   }
 }
-
 
 // ============================================================
 // SUBMISSION QUEUE MANAGEMENT
@@ -256,12 +353,18 @@ async function handleSubmissionDetected(data, tabId) {
 
   if (!config.enabled) return;
 
+  // Auto-generate README if missing (e.g. from Bulk Sync)
+  if (!data.readme) {
+    data.readme = generateReadme(data);
+  }
+
   const queue = await getQueue();
 
   // Prevent duplicates in queue based on submissionId or folderName
-  const isDuplicate = queue.some(item =>
-    (item.submissionId && item.submissionId === data.submissionId) ||
-    item.folderName === data.folderName
+  const isDuplicate = queue.some(
+    (item) =>
+      (item.submissionId && item.submissionId === data.submissionId) ||
+      item.folderName === data.folderName
   );
 
   if (isDuplicate) {
@@ -273,7 +376,7 @@ async function handleSubmissionDetected(data, tabId) {
     ...data,
     tabId, // Note: tabId might be invalid if tab closes, handle gracefully in sendSyncStatus
     timestamp: data.timestamp || Date.now(),
-    retryCount: 0
+    retryCount: 0,
   });
 
   await saveQueue(queue);
@@ -286,20 +389,40 @@ async function handleSubmissionDetected(data, tabId) {
 // QUEUE PROCESSING
 // ============================================================
 
-let isProcessing = false;
+// Helper to manage processing state atomically
+async function setProcessingState(queueName, isActive) {
+  await chrome.storage.session.set({ [queueName + '_processing']: isActive });
+}
+
+async function isProcessingActive(queueName) {
+  const result = await chrome.storage.session.get([queueName + '_processing']);
+  return !!result[queueName + '_processing'];
+}
 
 async function processSubmissionQueue() {
-  if (isProcessing) return;
-  isProcessing = true;
+  if (await isProcessingActive('submission')) return;
+  await setProcessingState('submission', true);
 
   try {
     const queue = await getQueue();
     if (queue.length === 0) {
-      isProcessing = false;
       return;
     }
 
     const item = queue[0]; // Peek
+
+    // Valid item
+    const total = queue.length + 1; // Approx total including current
+
+    // Report progress
+    chrome.runtime
+      .sendMessage({
+        type: 'BULK_SYNC_PROGRESS',
+        processed: total - queue.length,
+        total: total,
+        current: item.titleSlug,
+      })
+      .catch(() => { });
 
     // Notify "syncing"
     await sendSyncStatus(item.tabId, 'syncing', `Syncing "${item.title}"...`);
@@ -314,7 +437,6 @@ async function processSubmissionQueue() {
       // Remove from queue
       queue.shift();
       await saveQueue(queue);
-
     } catch (error) {
       console.error('CodeTrail: Sync failed for item:', item.title, error);
 
@@ -332,7 +454,9 @@ async function processSubmissionQueue() {
         await sendSyncStatus(item.tabId, 'error', `Sync failed: ${error.message}. Retrying...`);
       } else {
         // Max retries reached or fatal error
-        const finalMsg = isFatal ? `Sync failed: ${error.message} (Check Settings)` : `Sync failed permanently: ${error.message}`;
+        const finalMsg = isFatal
+          ? `Sync failed: ${error.message} (Check Settings)`
+          : `Sync failed permanently: ${error.message}`;
         await sendSyncStatus(item.tabId, 'error', finalMsg);
         queue.shift(); // Remove
         await saveQueue(queue);
@@ -341,13 +465,13 @@ async function processSubmissionQueue() {
   } catch (error) {
     console.error('CodeTrail: Queue processing fatal error:', error);
   } finally {
-    isProcessing = false;
+    await setProcessingState('submission', false);
 
     // If more items, trigger again (or wait for alarm)
     const queue = await getQueue();
     if (queue.length > 0) {
       // Small delay to prevent rate limits
-      setTimeout(processSubmissionQueue, 1000);
+      chrome.alarms.create(PROCESS_SUBMISSION_NEXT_ALARM, { delayInMinutes: 0.05 });
     }
   }
 }
@@ -356,18 +480,23 @@ async function processSubmissionQueue() {
  * Send sync status to content script
  */
 async function sendSyncStatus(tabId, status, message) {
-  if (!tabId) return;
+  const payload = {
+    type: 'SYNC_STATUS',
+    status,
+    message,
+  };
 
+  // 1. Notify the Popup Window (Runtime)
   try {
-    // Check if tab still exists
-    // const tab = await chrome.tabs.get(tabId).catch(() => null);
-    // if (!tab) return; 
+    await chrome.runtime.sendMessage(payload);
+  } catch (e) {
+    // Popup might be closed, ignore
+  }
 
-    await chrome.tabs.sendMessage(tabId, {
-      type: 'SYNC_STATUS',
-      status,
-      message,
-    });
+  // 2. Notify the Content Script (Tab)
+  if (!tabId) return;
+  try {
+    await chrome.tabs.sendMessage(tabId, payload);
   } catch (error) {
     // Tab might be closed or not accessible, harmless
     // console.log('CodeTrail: Could not send sync status (tab closed?):', error.message);
@@ -401,7 +530,7 @@ async function handleSyncSubmission(data) {
     action: action,
     runtime: data.runtime,
     memory: data.memory,
-    submissionId: data.submissionId
+    submissionId: data.submissionId,
   });
 }
 
@@ -435,15 +564,15 @@ async function updateStats(difficulty) {
 // WEBNAV LISTENER
 // ============================================================
 
-chrome.webNavigation?.onHistoryStateUpdated.addListener(
-  (details) => {
-    const match = details.url.match(/\/problems\/[\w-]+\/submissions\/(\d+)/);
-    if (match) {
-      console.log('CodeTrail: Detected submission navigation:', match[1]);
-      // Content script picks this up
-    }
-  },
-  { url: [{ hostSuffix: 'leetcode.com' }] }
-);
+console.log('CodeTrail: Background service worker started (v2.0.0)');
 
-console.log('CodeTrail service worker initialized (v2.1 - Bulk Import)');
+// Keep-Alive Mechanism
+chrome.runtime.onStartup.addListener(() => {
+  // Ensure alarms are set
+  chrome.alarms.get(ALARM_NAME, (alarm) => {
+    if (!alarm) chrome.alarms.create(ALARM_NAME, { periodInMinutes: 1 });
+  });
+  chrome.alarms.get(BULK_ALARM_NAME, (alarm) => {
+    if (!alarm) chrome.alarms.create(BULK_ALARM_NAME, { periodInMinutes: 1 });
+  });
+});

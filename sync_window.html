@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CodeTrail Sync</title>
+    <link rel="stylesheet" href="sync_window.css" />
+  </head>
+
+  <body>
+    <div class="container">
+      <header>
+        <div class="logo">
+          <span class="logo-icon">🚀</span>
+          <h1>CodeTrail Sync</h1>
+        </div>
+      </header>
+
+      <main id="sync-content">
+        <div id="loading-state" class="state-view">
+          <div class="spinner"></div>
+          <p>Loading problem data...</p>
+        </div>
+
+        <div id="form-state" class="state-view" style="display: none">
+          <div class="problem-info">
+            <h2 id="problem-title">Problem Title</h2>
+            <div class="tags" id="problem-tags"></div>
+          </div>
+
+          <div class="input-group">
+            <label for="method">Method / Approach (Optional)</label>
+            <input type="text" id="method" placeholder="e.g. Two Pointers, DFS" />
+          </div>
+
+          <div class="input-group">
+            <label for="notes">Notes / Complexity</label>
+            <textarea id="notes" placeholder="e.g. O(n) time..."></textarea>
+          </div>
+
+          <div class="input-group">
+            <label for="youtube">YouTube Link (Optional)</label>
+            <input type="url" id="youtube" placeholder="https://youtube.com/watch?v=..." />
+          </div>
+        </div>
+
+        <div id="success-state" class="state-view" style="display: none">
+          <div class="success-icon">✅</div>
+          <h2>Synced Successfully!</h2>
+          <p>Window will close in 3 seconds...</p>
+        </div>
+
+        <div id="error-state" class="state-view" style="display: none">
+          <div class="error-icon">❌</div>
+          <h2 id="error-title">Sync Failed</h2>
+          <p id="error-message">Unknown error occurred.</p>
+          <button id="retry-btn" class="btn-secondary">Retry</button>
+        </div>
+      </main>
+
+      <footer id="sync-footer" style="display: none">
+        <button id="cancel-btn" class="btn-secondary">Cancel</button>
+        <button id="sync-btn" class="btn-primary">Sync to GitHub</button>
+      </footer>
+    </div>
+    <script type="module" src="sync_window.js"></script>
+  </body>
+</html>

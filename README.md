@@ -2,7 +2,7 @@
 
 [![CI/CD Pipeline](https://github.com/ThivakarSP/CodeTrail/actions/workflows/main.yml/badge.svg)](https://github.com/ThivakarSP/CodeTrail/actions/workflows/main.yml)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Version](https://img.shields.io/badge/version-1.0.0-green.svg)
+![Version](https://img.shields.io/badge/version-2.0.0-green.svg)
 
 **CodeTrail** is a powerful Chrome extension that automatically syncs your LeetCode submissions to a GitHub repository. Keep your portfolio up-to-date and track your coding journey effortlessly.
 

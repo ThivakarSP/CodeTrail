@@ -3,10 +3,45 @@
 
 import { LANGUAGES } from './constants.js';
 import { getProblemIndex, saveProblemIndex } from './storage.js';
+import { appendVersionToReadme } from './readme.js';
+import { githubFetch } from './api.js';
 
-// Cache for branch detection and file SHAs
-const branchCache = new Map(); // Map<"username/repo", branchName>
-const activePushes = new Set(); // Operation locking
+// ====================================================================================
+// SESSION STORAGE HELPERS (MV3 Persistent State)
+// ====================================================================================
+
+/**
+ * Get value from session storage
+ * @param {string} key
+ * @returns {Promise<any>}
+ */
+async function getSession(key) {
+  try {
+    const result = await chrome.storage.session.get([key]);
+    return result[key];
+  } catch (e) {
+    console.warn('CodeTrail: Session storage access failed', e);
+    return null;
+  }
+}
+
+/**
+ * Set value in session storage
+ * @param {string} key
+ * @param {any} value
+ * @returns {Promise<void>}
+ */
+async function setSession(key, value) {
+  try {
+    await chrome.storage.session.set({ [key]: value });
+  } catch (e) {
+    console.warn('CodeTrail: Session storage write failed', e);
+  }
+}
+
+// ====================================================================================
+// CORE GITHUB FUNCTIONS
+// ====================================================================================
 
 /**
  * Test connection to GitHub with provided credentials
@@ -15,20 +50,23 @@ const activePushes = new Set(); // Operation locking
  */
 export async function testConnection(config) {
   try {
-    const response = await fetch(`https://api.github.com/repos/${config.username}/${config.repo}`, {
-      headers: {
-        Authorization: `Bearer ${config.token}`,
-        Accept: 'application/vnd.github.v3+json',
-        'User-Agent': 'CodeTrail-Extension',
-      },
-    });
+    const response = await githubFetch(
+      `https://api.github.com/repos/${config.username}/${config.repo}`,
+      {
+        headers: {
+          Authorization: `Bearer ${config.token}`,
+          Accept: 'application/vnd.github.v3+json',
+          'User-Agent': 'CodeTrail-Extension',
+        },
+      }
+    );
 
     if (response.status === 401) {
       return { success: false, error: 'Invalid token. Please check your Personal Access Token.' };
     }
 
     if (response.status === 404) {
-      return { success: false, error: `Repository "${config.username}/${config.repo}" not found.` };
+      return { success: false, error: `Repository "${config.username}/${config.repo}" not found. If it's private, ensure your token has 'repo' scope.` };
     }
 
     if (!response.ok) {
@@ -39,7 +77,7 @@ export async function testConnection(config) {
     // Cache the default branch
     const repoData = await response.json();
     const branch = repoData.default_branch || 'main';
-    branchCache.set(`${config.username}/${config.repo}`, branch);
+    await setSession(`branch_${config.username}_${config.repo}`, branch);
 
     return { success: true };
   } catch (error) {
@@ -52,7 +90,7 @@ export async function testConnection(config) {
  */
 export async function checkFileExists(config, folderName) {
   try {
-    const response = await fetch(
+    const response = await githubFetch(
       `https://api.github.com/repos/${config.username}/${config.repo}/contents/${folderName}`,
       {
         method: 'HEAD',
@@ -72,11 +110,31 @@ export async function checkFileExists(config, folderName) {
  * Get repository default branch with caching
  */
 async function getDefaultBranch(config) {
-  const cacheKey = `${config.username}/${config.repo}`;
-  if (branchCache.has(cacheKey)) {
-    return branchCache.get(cacheKey);
+  const cacheKey = `branch_${config.username}_${config.repo}`;
+  const cached = await getSession(cacheKey);
+  if (cached) return cached;
+
+  try {
+    const response = await githubFetch(
+      `https://api.github.com/repos/${config.username}/${config.repo}`,
+      {
+        headers: {
+          Authorization: `Bearer ${config.token}`,
+          Accept: 'application/vnd.github.v3+json',
+        },
+      }
+    );
+
+    if (!response.ok) return 'main'; // Fallback if repo not found or other error
+
+    const data = await response.json();
+    const branch = data.default_branch || 'main'; // GitHub usually returns this
+    await setSession(cacheKey, branch);
+    return branch;
+  } catch (error) {
+    console.error('CodeTrail: Failed to fetch default branch', error);
+    return 'main';
   }
-  return 'main';
 }
 
 /**
@@ -85,11 +143,11 @@ async function getDefaultBranch(config) {
 async function getFileContent(config, path) {
   const { username, repo, token } = config;
   try {
-    const response = await fetch(
+    const response = await githubFetch(
       `https://api.github.com/repos/${username}/${repo}/contents/${path}?t=${Date.now()}`,
       {
         headers: {
-          Authorization: `token ${token}`,
+          Authorization: `Bearer ${token}`,
           Accept: 'application/vnd.github.v3+json',
         },
       }
@@ -111,7 +169,7 @@ async function getFileContent(config, path) {
  */
 async function getNextVersion(config, folderName, extension) {
   try {
-    const response = await fetch(
+    const response = await githubFetch(
       `https://api.github.com/repos/${config.username}/${config.repo}/contents/${folderName}?t=${Date.now()}`,
       {
         headers: {
@@ -156,7 +214,7 @@ async function getNextVersion(config, folderName, extension) {
 // ====================================================================================
 
 async function createBlob(config, content) {
-  const response = await fetch(
+  const response = await githubFetch(
     `https://api.github.com/repos/${config.username}/${config.repo}/git/blobs`,
     {
       method: 'POST',
@@ -178,10 +236,10 @@ async function createBlob(config, content) {
 }
 
 async function getLatestCommitSha(config, branch) {
-  const response = await fetch(
+  const response = await githubFetch(
     `https://api.github.com/repos/${config.username}/${config.repo}/git/ref/heads/${branch}?t=${Date.now()}`,
     {
-      headers: { Authorization: `Bearer ${config.token}` }
+      headers: { Authorization: `Bearer ${config.token}` },
     }
   );
 
@@ -191,10 +249,10 @@ async function getLatestCommitSha(config, branch) {
 }
 
 async function getCommitTreeSha(config, commitSha) {
-  const response = await fetch(
+  const response = await githubFetch(
     `https://api.github.com/repos/${config.username}/${config.repo}/git/commits/${commitSha}`,
     {
-      headers: { Authorization: `Bearer ${config.token}` }
+      headers: { Authorization: `Bearer ${config.token}` },
     }
   );
 
@@ -217,7 +275,7 @@ async function createTree(config, baseTreeSha, files) {
     })
   );
 
-  const response = await fetch(
+  const response = await githubFetch(
     `https://api.github.com/repos/${config.username}/${config.repo}/git/trees`,
     {
       method: 'POST',
@@ -227,7 +285,7 @@ async function createTree(config, baseTreeSha, files) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        base_tree: baseTreeSha,
+        base_tree: baseTreeSha || undefined,
         tree: treeItems,
       }),
     }
@@ -238,8 +296,8 @@ async function createTree(config, baseTreeSha, files) {
   return data.sha;
 }
 
-async function createCommit(config, message, treeSha, parentSha) {
-  const response = await fetch(
+async function createCommit(config, message, treeSha, parents = []) {
+  const response = await githubFetch(
     `https://api.github.com/repos/${config.username}/${config.repo}/git/commits`,
     {
       method: 'POST',
@@ -251,7 +309,7 @@ async function createCommit(config, message, treeSha, parentSha) {
       body: JSON.stringify({
         message: message,
         tree: treeSha,
-        parents: [parentSha],
+        parents: parents,
       }),
     }
   );
@@ -262,7 +320,7 @@ async function createCommit(config, message, treeSha, parentSha) {
 }
 
 async function updateRef(config, branch, newCommitSha) {
-  const response = await fetch(
+  const response = await githubFetch(
     `https://api.github.com/repos/${config.username}/${config.repo}/git/refs/heads/${branch}`,
     {
       method: 'PATCH',
@@ -279,16 +337,58 @@ async function updateRef(config, branch, newCommitSha) {
   return await response.json();
 }
 
+async function createRef(config, branch, sha) {
+  const response = await githubFetch(
+    `https://api.github.com/repos/${config.username}/${config.repo}/git/refs`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${config.token}`,
+        Accept: 'application/vnd.github.v3+json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        ref: `refs/heads/${branch}`,
+        sha: sha
+      }),
+    }
+  );
+
+  if (!response.ok) throw new Error(`Failed to create ref: ${response.status}`);
+  return await response.json();
+}
+
 /**
  * Execute atomic batch commit
  */
 async function commitBatch(config, files, message) {
   const branch = await getDefaultBranch(config);
-  const latestCommitSha = await getLatestCommitSha(config, branch);
-  const baseTreeSha = await getCommitTreeSha(config, latestCommitSha);
+  
+  let latestCommitSha = null;
+  let baseTreeSha = null;
+  
+  try {
+    latestCommitSha = await getLatestCommitSha(config, branch);
+    baseTreeSha = await getCommitTreeSha(config, latestCommitSha);
+  } catch (error) {
+    if (error.message.includes('404')) {
+      console.log('CodeTrail: Branch not found. Assuming empty repository (initial commit).');
+    } else {
+      throw error;
+    }
+  }
+
   const newTreeSha = await createTree(config, baseTreeSha, files);
-  const newCommitSha = await createCommit(config, message, newTreeSha, latestCommitSha);
-  await updateRef(config, branch, newCommitSha);
+  
+  const parents = latestCommitSha ? [latestCommitSha] : [];
+  const newCommitSha = await createCommit(config, message, newTreeSha, parents);
+  
+  if (latestCommitSha) {
+    await updateRef(config, branch, newCommitSha);
+  } else {
+    await createRef(config, branch, newCommitSha);
+  }
+  
   return newCommitSha;
 }
 
@@ -299,11 +399,17 @@ async function commitBatch(config, files, message) {
 export async function pushToGitHub(config, submission) {
   const { title, number, difficulty, tags, code, language, folderName } = submission;
 
-  const lockKey = `${config.username}/${config.repo}/${folderName}`;
-  if (activePushes.has(lockKey)) {
+  if (!folderName) throw new Error('Missing folder name for sync');
+  if (!code) throw new Error('No code to sync');
+
+  const lockKey = `lock_${config.username}_${config.repo}_${folderName}`;
+  const isLocked = await getSession(lockKey);
+  if (isLocked) {
     throw new Error('Sync already in progress for this problem.');
   }
-  activePushes.add(lockKey);
+
+  // Acquire lock
+  await setSession(lockKey, Date.now());
 
   try {
     const extension = getFileExtension(language);
@@ -380,7 +486,8 @@ export async function pushToGitHub(config, submission) {
 
     console.log(`CodeTrail: Successfully synced ${folderName} (v${version})`);
   } finally {
-    activePushes.delete(lockKey);
+    // Release lock
+    await chrome.storage.session.remove([lockKey]);
   }
 }
 
@@ -389,9 +496,12 @@ export async function pushToGitHub(config, submission) {
 // ====================================================================================
 
 function getFileExtension(language) {
-  const langLower = (language || '').toLowerCase().trim();
+  const langLower = (language || '').toLowerCase().trim().replace(/^\./, '');
   for (const [name, ext] of Object.entries(LANGUAGES)) {
-    if (name.toLowerCase() === langLower) return ext.replace('.', '');
+    const cleanExt = ext.replace('.', '');
+    if (name.toLowerCase() === langLower || cleanExt === langLower) {
+      return cleanExt;
+    }
   }
   return 'txt';
 }
@@ -401,61 +511,20 @@ function generateCommitMessage(submission, version, components) {
   let stats = [];
 
   if (runtime && runtimePercentile) {
-    stats.push(`Time: ${runtime} (${runtimePercentile.toFixed(2)}%)`);
+    stats.push(
+      `Time: ${runtime} (${typeof runtimePercentile === 'number' ? runtimePercentile.toFixed(2) : runtimePercentile}%)`
+    );
   }
   if (memory && memoryPercentile) {
-    stats.push(`Space: ${memory} (${memoryPercentile.toFixed(2)}%)`);
+    stats.push(
+      `Space: ${memory} (${typeof memoryPercentile === 'number' ? memoryPercentile.toFixed(2) : memoryPercentile}%)`
+    );
   }
 
   const statsStr = stats.length > 0 ? stats.join(' | ') : 'Solved';
   const title = `${submission.title} [${submission.difficulty}]`;
 
   return `${statsStr} - ${title} - CodeTrail`;
-}
-
-function appendVersionToReadme(existingContent, submission, version) {
-  const date = new Date().toLocaleDateString();
-  let versionSection = `\n---\n\n## Version ${version}\n\n**Language**: ${submission.language || 'Unknown'}\n\n`;
-
-  if (submission.runtime) {
-    versionSection += `**Runtime**: ${submission.runtime}`;
-    if (submission.runtimePercentile) {
-      versionSection += ` (${submission.runtimePercentile.toFixed(2)}%)`;
-    }
-    versionSection += '\n\n';
-  }
-
-  if (submission.memory) {
-    versionSection += `**Memory**: ${submission.memory}`;
-    if (submission.memoryPercentile) {
-      versionSection += ` (${submission.memoryPercentile.toFixed(2)}%)`;
-    }
-    versionSection += '\n\n';
-  }
-  versionSection += `*Solved on: ${date}*\n`;
-
-  const refs = submission.references || {};
-  if (refs.youtube || refs.notes || refs.approach || refs.additionalRefs) {
-    versionSection += `\n### References (v${version})\n\n`;
-    if (refs.approach) versionSection += `**Approach**: ${refs.approach}\n\n`;
-    if (refs.youtube) versionSection += `📺 **Video**: [Watch on YouTube](${refs.youtube})\n\n`;
-    if (refs.notes) versionSection += `📝 **Notes**:\n${refs.notes}\n\n`;
-    if (refs.additionalRefs) versionSection += `🔗 **Resources**: ${refs.additionalRefs}\n\n`;
-  }
-
-  const footerMatch = existingContent.match(/\n\*Auto-synced by \[CodeTrail\]/);
-  if (footerMatch) {
-    return (
-      existingContent.slice(0, footerMatch.index) +
-      versionSection +
-      existingContent.slice(footerMatch.index)
-    );
-  }
-  return (
-    existingContent +
-    versionSection +
-    '\n*Auto-synced by [CodeTrail](https://github.com/ThivakarSP/CodeTrail)*'
-  );
 }
 
 function generateMainReadme(problemIndex, repoName) {

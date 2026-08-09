@@ -1,10 +1,12 @@
 import {
-  getConfig,
   saveConfig,
-  getStats,
+  getConfig,
   saveStats,
+  getStats,
+  resetStats,
   getSyncHistory,
   addSyncHistoryEntry,
+  getAnalytics,
 } from '../../utils/storage.js';
 
 // Mock chrome.storage.local
@@ -49,6 +51,16 @@ describe('Storage Utils', () => {
         token: 'token',
         enabled: false,
       });
+      // Verification of migration save (optional but good)
+      expect(mockStorage.set).toHaveBeenCalledWith(
+        expect.objectContaining({
+          codetrail_username: 'user',
+          codetrail_repo: 'repo',
+          codetrail_token: 'token',
+          codetrail_enabled: false,
+        }),
+        expect.any(Function)
+      );
     });
   });
 
@@ -61,8 +73,8 @@ describe('Storage Utils', () => {
       await saveConfig({ username: 'newuser', enabled: true });
       expect(mockStorage.set).toHaveBeenCalledWith(
         expect.objectContaining({
-          github_username: 'newuser',
-          extension_enabled: true,
+          codetrail_username: 'newuser',
+          codetrail_enabled: true,
         }),
         expect.any(Function)
       );
@@ -83,6 +95,76 @@ describe('Storage Utils', () => {
         hard: 0,
         lastUpdated: null,
       });
+    });
+  });
+
+  describe('getAnalytics', () => {
+    test('calculates correct counts', async () => {
+      const now = new Date();
+
+      // Calculate boundaries exactly like implementation
+      const startOfWeek = new Date(now);
+      const day = startOfWeek.getDay() || 7;
+      if (day !== 1) startOfWeek.setHours(-24 * (day - 1));
+      startOfWeek.setHours(0, 0, 0, 0);
+
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const startOfYear = new Date(now.getFullYear(), 0, 1);
+
+      const history = [
+        { titleSlug: 'p1', timestamp: now.getTime() }, // Today (Inside all)
+        { titleSlug: 'p2', timestamp: startOfWeek.getTime() + 1000 }, // Start of week (Inside all)
+        { titleSlug: 'p3', timestamp: startOfWeek.getTime() - 1000 }, // Just before week (Outside week, Inside month?)
+        { titleSlug: 'p4', timestamp: startOfMonth.getTime() + 1000 }, // Start of month (Inside month/year)
+        { titleSlug: 'p1', timestamp: now.getTime() - 100 }, // Duplicate p1
+      ];
+
+      mockStorage.get.mockImplementation((keys, callback) => {
+        callback({ codetrail_history: history });
+      });
+
+      const analytics = await getAnalytics();
+
+      const expectedWeekly = new Set(
+        history.filter((h) => h.timestamp >= startOfWeek.getTime()).map((h) => h.titleSlug)
+      ).size;
+      const expectedMonthly = new Set(
+        history.filter((h) => h.timestamp >= startOfMonth.getTime()).map((h) => h.titleSlug)
+      ).size;
+      const expectedYearly = new Set(
+        history.filter((h) => h.timestamp >= startOfYear.getTime()).map((h) => h.titleSlug)
+      ).size;
+
+      expect(analytics.weekly).toBe(expectedWeekly);
+      expect(analytics.monthly).toBe(expectedMonthly);
+      expect(analytics.yearly).toBe(expectedYearly);
+      expect(analytics.weekly).toBeGreaterThanOrEqual(1);
+    });
+  });
+
+  describe('addSyncHistoryEntry', () => {
+    test('prevents duplicate processing (if implemented) and caps limit', async () => {
+      // Mock existing history
+      const existing = Array(500)
+        .fill()
+        .map((_, i) => ({
+          submissionId: `old-${i}`,
+          timestamp: Date.now() - 1000 * i,
+        }));
+
+      mockStorage.get.mockImplementation((keys, callback) => {
+        callback({ codetrail_history: existing });
+      });
+
+      const newEntry = { submissionId: 'new-1', title: 'New Problem', timestamp: Date.now() };
+      await addSyncHistoryEntry(newEntry);
+
+      const setCall = mockStorage.set.mock.calls[0][0];
+      const newHistory = setCall.codetrail_history;
+
+      expect(newHistory.length).toBe(500); // capped
+      expect(newHistory[0]).toEqual(newEntry); // newest first
+      expect(newHistory[500]).toBeUndefined(); // old one dropped
     });
   });
 });

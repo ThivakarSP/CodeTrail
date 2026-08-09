@@ -1,8 +1,11 @@
-// Centralized Constants for CodeTrail
-// Reduces duplication and improves maintainability
+/**
+ * Centralized Constants for CodeTrail
+ * Pure ES Module for Background & Utils
+ *
+ * WARNING: This file must be manually synced with content/constants.js
+ */
 
-/** Supported languages and their file extensions */
-export const LANGUAGES = Object.freeze({
+export const LANGUAGES = {
   C: '.c',
   'C++': '.cpp',
   'C#': '.cs',
@@ -32,10 +35,9 @@ export const LANGUAGES = Object.freeze({
   R: '.r',
   Bash: '.sh',
   Shell: '.sh',
-});
+};
 
-/** DOM Selectors for scraping (Fallbacks for when GraphQL isn't enough) */
-export const SELECTORS = Object.freeze({
+export const SELECTORS = {
   SUBMISSION_RESULT: [
     '[data-e2e-locator="submission-result"]',
     '.submission-result',
@@ -47,49 +49,34 @@ export const SELECTORS = Object.freeze({
     '.text-success',
     '.text-olive',
     '.green-text',
-    'span[class*="text-green"]'
+    'span[class*="text-green"]',
   ],
-  CHECK_SUCCESS_ATTRIBUTES: [
-    'span[data-e2e-locator="submission-result"]',
-    '[data-e2e-locator="submission-result"]',
-    '.submission-result .status',
-    '#submission-app .status'
-  ],
-  CODE_CONTAINERS: [
-    '.view-line',
-    '.monaco-editor .view-lines',
-    'pre',
-    'textarea[name="code"]'
-  ],
+  CODE_CONTAINERS: ['.view-line', '.monaco-editor .view-lines', 'pre', 'textarea[name="code"]'],
   TITLE_LINK: 'div.flex.items-center.gap-2 > a[href*="/problems/"]',
-  LANG_SELECT: [
-    '[data-cy="lang-select"] span',
-    'div.text-xs.font-medium.text-label-1'
-  ],
+  LANG_SELECT: ['[data-cy="lang-select"] span', 'div.text-xs.font-medium.text-label-1'],
   DIFFICULTY: {
     EASY: ['.text-olive', '.text-green-500'],
     MEDIUM: ['.text-yellow', '.text-yellow-500'],
-    HARD: ['.text-pink', '.text-red-500']
+    HARD: ['.text-pink', '.text-red-500'],
   },
   DESCRIPTION: [
     '[data-track-load="description_content"]',
     '.elfjS[data-track-load="description_content"]',
     '.description__24sA',
     'div[class*="description"]',
-    '.content__u3I1'
+    '.content__u3I1',
   ],
   TAGS: [
     'a[href^="/tag/"]',
     '.topic-tag__1jni',
     'div[class*="topic-tag"]',
-    'a[class*="topic-tag"]'
-  ]
-});
+    'a[class*="topic-tag"]',
+  ],
+};
 
-/** Configuration Defaults */
-export const DEFAULTS = Object.freeze({
-  SYNC_DELAY: 1000, // Delay between syncs in ms
-  CACHE_TTL: 300000, // 5 minutes
+export const DEFAULTS = {
+  SYNC_DELAY: 1000,
+  CACHE_TTL: 300000,
   MAX_RETRIES: 3,
   RETRY_DELAY: 500,
-});
+};

@@ -8,8 +8,40 @@ global.chrome = {
   },
   storage: {
     local: {
-      get: jest.fn(),
-      set: jest.fn(),
+      get: jest.fn((keys, callback) => {
+        if (callback) callback({});
+        return Promise.resolve({});
+      }),
+      set: jest.fn((items, callback) => {
+        if (callback) callback();
+        return Promise.resolve();
+      }),
+      remove: jest.fn((keys, callback) => {
+        if (callback) callback();
+        return Promise.resolve();
+      }),
+      clear: jest.fn((callback) => {
+        if (callback) callback();
+        return Promise.resolve();
+      }),
+    },
+    session: {
+      get: jest.fn((keys, callback) => {
+        if (callback) callback({});
+        return Promise.resolve({});
+      }),
+      set: jest.fn((items, callback) => {
+        if (callback) callback();
+        return Promise.resolve();
+      }),
+      remove: jest.fn(),
+      clear: jest.fn(),
+    },
+  },
+  alarms: {
+    create: jest.fn(),
+    onAlarm: {
+      addListener: jest.fn(),
     },
   },
   notifications: {
