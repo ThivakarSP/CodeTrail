@@ -16,16 +16,21 @@ test.describe('CodeTrail Background Worker (GitHub Push) Tests', () => {
     references: {
       method: 'Two Pointers',
       notes: 'O(n) time',
-      youtube: ''
-    }
+      youtube: '',
+    },
   };
 
-  test('Successfully pushes to GitHub using mocked API', async ({ page, context, extensionId, setStorage }) => {
+  test('Successfully pushes to GitHub using mocked API', async ({
+    page,
+    context,
+    extensionId,
+    setStorage,
+  }) => {
     // 1. Inject a fake GitHub OAuth token and repo so the extension thinks it's authenticated
     await setStorage({
       codetrail_username: 'testuser',
       codetrail_repo: 'testrepo',
-      codetrail_token: 'gho_fake_test_token_123456789'
+      codetrail_token: 'gho_fake_test_token_123456789',
     });
 
     // 2. Intercept all GitHub API requests to mock the batch commit process
@@ -34,7 +39,7 @@ test.describe('CodeTrail Background Worker (GitHub Push) Tests', () => {
       const request = route.request();
       const method = request.method();
       const url = request.url();
-      
+
       if (method === 'GET') {
         if (url.includes('/contents/')) {
           // Mock version check (file doesn't exist)

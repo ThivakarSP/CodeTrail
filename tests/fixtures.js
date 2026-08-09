@@ -6,10 +6,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export const test = base.extend({
-  context: async ({}, use) => {
+  context: async ({ browser }, use) => {
     // Path to the root of the unpacked extension
     const pathToExtension = path.join(__dirname, '..');
-    
+
     // Launch a persistent context with extension flags
     const context = await chromium.launchPersistentContext('', {
       channel: 'chromium',
@@ -18,23 +18,23 @@ export const test = base.extend({
         `--load-extension=${pathToExtension}`,
       ],
     });
-    
+
     await use(context);
     await context.close();
   },
-  
+
   extensionId: async ({ context }, use) => {
     // Manifest V3 uses service workers. We grab the worker to extract the extension ID.
     let [serviceWorker] = context.serviceWorkers();
     if (!serviceWorker) {
       serviceWorker = await context.waitForEvent('serviceworker');
     }
-    
+
     // Extract the ID from the service worker URL (chrome-extension://[ID]/background.js)
     const extensionId = serviceWorker.url().split('/')[2];
     await use(extensionId);
   },
-  
+
   setStorage: async ({ context }, use) => {
     const setExtensionStorage = async (data) => {
       let [serviceWorker] = context.serviceWorkers();

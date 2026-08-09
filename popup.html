@@ -1,114 +1,123 @@
 <!doctype html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CodeTrail</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
 
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CodeTrail</title>
-  <link rel="stylesheet" href="popup.css" />
-</head>
-
-<body>
-  <div class="container">
-    <header>
-      <div class="header-top">
-        <div class="logo">
-          <span class="logo-icon">🚀</span>
-          <p>CodeTrail v2.0.0 • Made for LeetCoders</p>
-        </div>
-        <div class="status-indicator" id="statusIndicator">
-          <span class="status-dot"></span>
-          <span class="status-text">Active</span>
-        </div>
-      </div>
-    </header>
-
-    <main>
-      <!-- Config Card -->
-      <div id="configCard" class="config-card">
-        <!-- Injected by JS -->
-      </div>
-
-      <!-- Toggle Section -->
-      <div class="toggle-section">
-        <label class="toggle-label">
-          <span>Enable CodeTrail</span>
-          <div class="toggle-switch">
-            <input type="checkbox" id="enableToggle" />
-            <span class="toggle-slider"></span>
+  <body>
+    <div class="container">
+      <header>
+        <div class="header-top">
+          <div class="logo">
+            <span class="logo-icon">🚀</span>
+            <p>CodeTrail v2.0.0 • Made for LeetCoders</p>
           </div>
-        </label>
-      </div>
-
-      <!-- Stats Section -->
-      <div class="stats-section">
-        <h2>Your Progress</h2>
-        <div class="stats-grid">
-          <div class="stat-card stat-total">
-            <span class="stat-value" id="statTotal">0</span>
-            <span class="stat-label">Total</span>
-          </div>
-          <div class="stat-card stat-easy">
-            <span class="stat-value" id="statEasy">0</span>
-            <span class="stat-label">Easy</span>
-          </div>
-          <div class="stat-card stat-medium">
-            <span class="stat-value" id="statMedium">0</span>
-            <span class="stat-label">Medium</span>
-          </div>
-          <div class="stat-card stat-hard">
-            <span class="stat-value" id="statHard">0</span>
-            <span class="stat-label">Hard</span>
+          <div class="status-indicator" id="statusIndicator">
+            <span class="status-dot"></span>
+            <span class="status-text">Active</span>
           </div>
         </div>
+      </header>
 
-        <!-- Velocity Stats -->
-        <div class="velocity-section">
-          <div class="velocity-grid">
-            <div class="stat-mini">
-              <span class="stat-value-mini" id="statWeekly">0</span>
-              <span class="stat-label-mini">This Week</span>
-            </div>
-            <div class="stat-mini">
-              <span class="stat-value-mini" id="statMonthly">0</span>
-              <span class="stat-label-mini">This Month</span>
-            </div>
-            <div class="stat-mini">
-              <span class="stat-value-mini" id="statYearly">0</span>
-              <span class="stat-label-mini">This Year</span>
-            </div>
-          </div>
-        </div>
-
-        <button class="btn-reset-stats" id="resetStats" title="Reset statistics" aria-label="Reset statistics"
-          style="margin-top: 15px">
-          Reset Stats
-        </button>
-      </div>
-
-      <!-- History Section -->
-      <div class="history-section">
-        <h2>Recent Syncs</h2>
-
-        <div id="historyList" class="history-list">
+      <main>
+        <!-- Config Card -->
+        <div id="configCard" class="config-card">
           <!-- Injected by JS -->
-          <div class="empty-state">
-            <span class="empty-icon">📂</span>
-            <p>No synced problems yet</p>
+        </div>
+
+        <!-- Toggle Section -->
+        <div class="toggle-section">
+          <label class="toggle-label">
+            <span>Enable CodeTrail</span>
+            <div class="toggle-switch">
+              <input type="checkbox" id="enableToggle" />
+              <span class="toggle-slider"></span>
+            </div>
+          </label>
+        </div>
+
+        <!-- Stats Section -->
+        <div class="stats-section">
+          <h2>Your Progress</h2>
+          <div class="stats-grid">
+            <div class="stat-card stat-total">
+              <span class="stat-value" id="statTotal">0</span>
+              <span class="stat-label">Total</span>
+            </div>
+            <div class="stat-card stat-easy">
+              <span class="stat-value" id="statEasy">0</span>
+              <span class="stat-label">Easy</span>
+            </div>
+            <div class="stat-card stat-medium">
+              <span class="stat-value" id="statMedium">0</span>
+              <span class="stat-label">Medium</span>
+            </div>
+            <div class="stat-card stat-hard">
+              <span class="stat-value" id="statHard">0</span>
+              <span class="stat-label">Hard</span>
+            </div>
+          </div>
+
+          <!-- Velocity Stats -->
+          <div class="velocity-section">
+            <div class="velocity-grid">
+              <div class="stat-mini">
+                <span class="stat-value-mini" id="statWeekly">0</span>
+                <span class="stat-label-mini">This Week</span>
+              </div>
+              <div class="stat-mini">
+                <span class="stat-value-mini" id="statMonthly">0</span>
+                <span class="stat-label-mini">This Month</span>
+              </div>
+              <div class="stat-mini">
+                <span class="stat-value-mini" id="statYearly">0</span>
+                <span class="stat-label-mini">This Year</span>
+              </div>
+            </div>
+          </div>
+
+          <button
+            class="btn-reset-stats"
+            id="resetStats"
+            title="Reset statistics"
+            aria-label="Reset statistics"
+            style="margin-top: 15px"
+          >
+            Reset Stats
+          </button>
+        </div>
+
+        <!-- History Section -->
+        <div class="history-section">
+          <h2>Recent Syncs</h2>
+
+          <div id="historyList" class="history-list">
+            <!-- Injected by JS -->
+            <div class="empty-state">
+              <span class="empty-icon">📂</span>
+              <p>No synced problems yet</p>
+            </div>
           </div>
         </div>
-      </div>
-    </main>
+      </main>
 
-    <footer>
-      <a href="#" id="openOptionsLink" aria-label="Open settings">Settings</a>
-      <a href="#" id="openRepoLink" class="repo-link" aria-label="Open repository" style="display: none">Open
-        Repository</a>
-      <span class="version">v2.0.0</span>
-    </footer>
-  </div>
+      <footer>
+        <a href="#" id="openOptionsLink" aria-label="Open settings">Settings</a>
+        <a
+          href="#"
+          id="openRepoLink"
+          class="repo-link"
+          aria-label="Open repository"
+          style="display: none"
+          >Open Repository</a
+        >
+        <span class="version">v2.0.0</span>
+      </footer>
+    </div>
 
-  <script type="module" src="popup.js"></script>
-</body>
-
+    <script type="module" src="popup.js"></script>
+  </body>
 </html>

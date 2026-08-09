@@ -42,7 +42,7 @@
       SUBMISSION_RESULT: [
         '[data-e2e-locator="submission-result"]',
         '.submission-result',
-        '#submission-panel'
+        '#submission-panel',
       ],
       CHECK_SUCCESS_CLASSES: [
         '.text-green-500',

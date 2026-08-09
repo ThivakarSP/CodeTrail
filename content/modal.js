@@ -134,7 +134,10 @@
 
       // Check if we need to restore structure (if error msg is present or elements missing)
       // This fixes the TypeError when elements are missing after an error state
-      if (contentEl && (contentEl.querySelector('.error-msg') || !this.getElement('codetrail-loading'))) {
+      if (
+        contentEl &&
+        (contentEl.querySelector('.error-msg') || !this.getElement('codetrail-loading'))
+      ) {
         contentEl.innerHTML = `
             <div id="codetrail-loading">
                 <div class="spinner"></div>

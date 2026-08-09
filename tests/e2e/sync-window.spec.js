@@ -10,7 +10,7 @@ test.describe('CodeTrail Sync Window UI Tests', () => {
     code: 'function twoSum() { return [0, 1]; }',
     runtime: '50 ms',
     memory: '42 MB',
-    tags: ['Array', 'Hash Table']
+    tags: ['Array', 'Hash Table'],
   };
 
   test('Form renders problem data correctly', async ({ page, extensionId, setStorage }) => {
@@ -51,12 +51,11 @@ test.describe('CodeTrail Sync Window UI Tests', () => {
     // Need a new page to reopen it
     const newPage = await page.context().newPage();
     await newPage.goto(`chrome-extension://${extensionId}/sync_window.html`);
-    
+
     await expect(newPage.locator('#form-state')).toBeVisible();
 
     // Assert drafts were restored
     await expect(newPage.locator('#notes')).toHaveValue('O(N) time complexity using HashMap');
     await expect(newPage.locator('#method')).toHaveValue('One-pass Hash Table');
   });
-
 });

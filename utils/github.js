@@ -66,7 +66,10 @@ export async function testConnection(config) {
     }
 
     if (response.status === 404) {
-      return { success: false, error: `Repository "${config.username}/${config.repo}" not found. If it's private, ensure your token has 'repo' scope.` };
+      return {
+        success: false,
+        error: `Repository "${config.username}/${config.repo}" not found. If it's private, ensure your token has 'repo' scope.`,
+      };
     }
 
     if (!response.ok) {
@@ -349,7 +352,7 @@ async function createRef(config, branch, sha) {
       },
       body: JSON.stringify({
         ref: `refs/heads/${branch}`,
-        sha: sha
+        sha: sha,
       }),
     }
   );
@@ -363,10 +366,10 @@ async function createRef(config, branch, sha) {
  */
 async function commitBatch(config, files, message) {
   const branch = await getDefaultBranch(config);
-  
+
   let latestCommitSha = null;
   let baseTreeSha = null;
-  
+
   try {
     latestCommitSha = await getLatestCommitSha(config, branch);
     baseTreeSha = await getCommitTreeSha(config, latestCommitSha);
@@ -379,16 +382,16 @@ async function commitBatch(config, files, message) {
   }
 
   const newTreeSha = await createTree(config, baseTreeSha, files);
-  
+
   const parents = latestCommitSha ? [latestCommitSha] : [];
   const newCommitSha = await createCommit(config, message, newTreeSha, parents);
-  
+
   if (latestCommitSha) {
     await updateRef(config, branch, newCommitSha);
   } else {
     await createRef(config, branch, newCommitSha);
   }
-  
+
   return newCommitSha;
 }
 
