@@ -112,11 +112,11 @@ describe('Storage Utils', () => {
       const startOfYear = new Date(now.getFullYear(), 0, 1);
 
       const history = [
-        { titleSlug: 'p1', timestamp: now.getTime() }, // Today (Inside all)
-        { titleSlug: 'p2', timestamp: startOfWeek.getTime() + 1000 }, // Start of week (Inside all)
-        { titleSlug: 'p3', timestamp: startOfWeek.getTime() - 1000 }, // Just before week (Outside week, Inside month?)
-        { titleSlug: 'p4', timestamp: startOfMonth.getTime() + 1000 }, // Start of month (Inside month/year)
-        { titleSlug: 'p1', timestamp: now.getTime() - 100 }, // Duplicate p1
+        { title: 'p1', titleSlug: 'p1', timestamp: now.getTime() },
+        { title: 'p2', titleSlug: 'p2', timestamp: startOfWeek.getTime() + 1000 },
+        { title: 'p3', titleSlug: 'p3', timestamp: startOfWeek.getTime() - 1000 },
+        { title: 'p4', titleSlug: 'p4', timestamp: startOfMonth.getTime() + 1000 },
+        { title: 'p1', titleSlug: 'p1', timestamp: now.getTime() - 100 },
       ];
 
       mockStorage.get.mockImplementation((keys, callback) => {
@@ -149,6 +149,7 @@ describe('Storage Utils', () => {
         .fill()
         .map((_, i) => ({
           submissionId: `old-${i}`,
+          title: `Old ${i}`,
           timestamp: Date.now() - 1000 * i,
         }));
 

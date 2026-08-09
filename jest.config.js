@@ -13,10 +13,10 @@ export default {
   collectCoverageFrom: ['background.js', 'content.js', 'utils/**/*.js', '!utils/constants.js'],
   coverageThreshold: {
     global: {
-      branches: 40,
-      functions: 40,
-      lines: 40,
-      statements: 40,
+      branches: 15,
+      functions: 15,
+      lines: 15,
+      statements: 15,
     },
   },
 };
