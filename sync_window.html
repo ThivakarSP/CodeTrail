@@ -29,17 +29,71 @@
           </div>
 
           <div class="input-group">
-            <label for="method">Method / Approach (Optional)</label>
-            <input type="text" id="method" placeholder="e.g. Two Pointers, DFS" />
+            <label for="method">Method / Approach</label>
+            <select id="method">
+              <option value="">-- Select Method --</option>
+              <option value="Array">Array</option>
+              <option value="String">String</option>
+              <option value="Hash Table">Hash Table</option>
+              <option value="Two Pointers">Two Pointers</option>
+              <option value="Sliding Window">Sliding Window</option>
+              <option value="Binary Search">Binary Search</option>
+              <option value="Dynamic Programming">Dynamic Programming</option>
+              <option value="Backtracking">Backtracking</option>
+              <option value="Recursion">Recursion</option>
+              <option value="Depth-First Search">Depth-First Search</option>
+              <option value="Breadth-First Search">Breadth-First Search</option>
+              <option value="Graph">Graph</option>
+              <option value="Tree">Tree</option>
+              <option value="Trie">Trie</option>
+              <option value="Heap">Heap</option>
+              <option value="Stack">Stack</option>
+              <option value="Queue">Queue</option>
+              <option value="Linked List">Linked List</option>
+              <option value="Greedy">Greedy</option>
+              <option value="Divide and Conquer">Divide and Conquer</option>
+              <option value="Bit Manipulation">Bit Manipulation</option>
+              <option value="Math">Math</option>
+            </select>
           </div>
 
           <div class="input-group">
-            <label for="notes">Notes / Complexity</label>
-            <textarea id="notes" placeholder="e.g. O(n) time..."></textarea>
+            <label for="timeComplexity">Time Complexity</label>
+            <select id="timeComplexity">
+              <option value="">-- Select Time Complexity --</option>
+              <option value="O(1)">O(1)</option>
+              <option value="O(log n)">O(log n)</option>
+              <option value="O(n)">O(n)</option>
+              <option value="O(n log n)">O(n log n)</option>
+              <option value="O(n^2)">O(n^2)</option>
+              <option value="O(n^3)">O(n^3)</option>
+              <option value="O(2^n)">O(2^n)</option>
+              <option value="O(n!)">O(n!)</option>
+            </select>
           </div>
 
           <div class="input-group">
-            <label for="youtube">YouTube Link (Optional)</label>
+            <label for="spaceComplexity">Space Complexity</label>
+            <select id="spaceComplexity">
+              <option value="">-- Select Space Complexity --</option>
+              <option value="O(1)">O(1)</option>
+              <option value="O(log n)">O(log n)</option>
+              <option value="O(n)">O(n)</option>
+              <option value="O(n log n)">O(n log n)</option>
+              <option value="O(n^2)">O(n^2)</option>
+              <option value="O(n^3)">O(n^3)</option>
+              <option value="O(2^n)">O(2^n)</option>
+              <option value="O(n!)">O(n!)</option>
+            </select>
+          </div>
+
+          <div class="input-group">
+            <label for="notes">Notes</label>
+            <textarea id="notes" placeholder="Any additional notes..."></textarea>
+          </div>
+
+          <div class="input-group">
+            <label for="youtube">YouTube Link</label>
             <input type="url" id="youtube" placeholder="https://youtube.com/watch?v=..." />
           </div>
         </div>

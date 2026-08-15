@@ -13,6 +13,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     title: document.getElementById('problem-title'),
     tags: document.getElementById('problem-tags'),
     method: document.getElementById('method'),
+    timeComplexity: document.getElementById('timeComplexity'),
+    spaceComplexity: document.getElementById('spaceComplexity'),
     notes: document.getElementById('notes'),
     youtube: document.getElementById('youtube'),
     footer: document.getElementById('sync-footer'),
@@ -38,7 +40,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   // Event Listeners for Memory (Persistence)
-  ['method', 'notes', 'youtube'].forEach((id) => {
+  ['method', 'timeComplexity', 'spaceComplexity', 'notes', 'youtube'].forEach((id) => {
     elements[id].addEventListener('input', saveDraft);
   });
 
@@ -68,6 +70,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   async function saveDraft() {
     const draft = {
       method: elements.method.value,
+      timeComplexity: elements.timeComplexity.value,
+      spaceComplexity: elements.spaceComplexity.value,
       notes: elements.notes.value,
       youtube: elements.youtube.value,
     };
@@ -77,8 +81,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   async function restoreDraft() {
     const result = await chrome.storage.local.get(['draft_sync_data']);
     if (result.draft_sync_data) {
-      const { method, notes, youtube } = result.draft_sync_data;
+      const { method, timeComplexity, spaceComplexity, notes, youtube } = result.draft_sync_data;
       if (method) elements.method.value = method;
+      if (timeComplexity) elements.timeComplexity.value = timeComplexity;
+      if (spaceComplexity) elements.spaceComplexity.value = spaceComplexity;
       if (notes) elements.notes.value = notes;
       if (youtube) elements.youtube.value = youtube;
     }
@@ -113,6 +119,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const references = {
       method: sanitizeMarkdown(elements.method.value.trim()),
+      timeComplexity: sanitizeMarkdown(elements.timeComplexity.value.trim()),
+      spaceComplexity: sanitizeMarkdown(elements.spaceComplexity.value.trim()),
       notes: sanitizeMarkdown(elements.notes.value.trim()),
       youtube: sanitizeYoutubeUrl(elements.youtube.value.trim()) || '', // Only allows valid youtube URLs
     };
@@ -169,9 +177,25 @@ document.addEventListener('DOMContentLoaded', async () => {
     chrome.storage.local.remove(['draft_sync_data']);
 
     switchView('success');
-    setTimeout(() => {
-      window.close();
-    }, 3000);
+    
+    let secondsLeft = 3;
+    const successMsg = views.success.querySelector('p');
+    if (successMsg) {
+      successMsg.textContent = `Window will close in ${secondsLeft} seconds...`;
+      const interval = setInterval(() => {
+        secondsLeft--;
+        if (secondsLeft > 0) {
+          successMsg.textContent = `Window will close in ${secondsLeft} seconds...`;
+        } else {
+          clearInterval(interval);
+          window.close();
+        }
+      }, 1000);
+    } else {
+      setTimeout(() => {
+        window.close();
+      }, 3000);
+    }
   }
 
   function showError(msg) {

@@ -41,9 +41,11 @@ test.describe('CodeTrail Sync Window UI Tests', () => {
     await page.goto(`chrome-extension://${extensionId}/sync_window.html`);
     await expect(page.locator('#form-state')).toBeVisible();
 
-    // Type notes
-    await page.fill('#notes', 'O(N) time complexity using HashMap');
-    await page.fill('#method', 'One-pass Hash Table');
+    // Select methods and complexities
+    await page.selectOption('#timeComplexity', 'O(n)');
+    await page.selectOption('#spaceComplexity', 'O(1)');
+    await page.fill('#notes', 'Using HashMap');
+    await page.selectOption('#method', 'Hash Table');
 
     // Close the page and reopen it to verify drafts
     await page.close();
@@ -55,7 +57,9 @@ test.describe('CodeTrail Sync Window UI Tests', () => {
     await expect(newPage.locator('#form-state')).toBeVisible();
 
     // Assert drafts were restored
-    await expect(newPage.locator('#notes')).toHaveValue('O(N) time complexity using HashMap');
-    await expect(newPage.locator('#method')).toHaveValue('One-pass Hash Table');
+    await expect(newPage.locator('#timeComplexity')).toHaveValue('O(n)');
+    await expect(newPage.locator('#spaceComplexity')).toHaveValue('O(1)');
+    await expect(newPage.locator('#notes')).toHaveValue('Using HashMap');
+    await expect(newPage.locator('#method')).toHaveValue('Hash Table');
   });
 });

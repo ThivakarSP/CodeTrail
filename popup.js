@@ -1,7 +1,7 @@
 // CodeTrail Popup Script
 // Enhanced with stats display and repository link
 
-import { getConfig, getStats, resetStats, getSyncHistory, saveConfig } from './utils/storage.js';
+import { getConfig, getStats, resetStats, getSyncHistory, saveConfig, getAnalytics } from './utils/storage.js';
 
 // Cached HTML escape element for performance
 const escapeElement = document.createElement('div');
@@ -110,8 +110,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   async function renderAnalytics() {
-    // Dynamic import to avoid issues if utils/storage.js isn't fully updated in cache
-    const { getAnalytics } = await import('./utils/storage.js');
     const analytics = await getAnalytics();
 
     document.getElementById('statWeekly').textContent = analytics.weekly || 0;

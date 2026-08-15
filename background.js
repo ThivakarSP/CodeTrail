@@ -141,8 +141,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             data.timestamp = Date.now();
           }
 
-          await handleSyncSubmission(data);
-          await updateStats(data.difficulty);
+          const syncResult = await handleSyncSubmission(data);
+          if (syncResult && syncResult.action === 'Created') {
+            await updateStats(data.difficulty);
+          }
           return { success: true };
         }
 
@@ -428,10 +430,12 @@ async function processSubmissionQueue() {
     await sendSyncStatus(item.tabId, 'syncing', `Syncing "${item.title}"...`);
 
     try {
-      await handleSyncSubmission(item);
+      const syncResult = await handleSyncSubmission(item);
 
       // Success
-      await updateStats(item.difficulty);
+      if (syncResult && syncResult.action === 'Created') {
+        await updateStats(item.difficulty);
+      }
       await sendSyncStatus(item.tabId, 'success', 'Synced to GitHub');
 
       // Remove from queue
@@ -514,7 +518,11 @@ async function handleSyncSubmission(data) {
     throw new Error('GitHub not configured');
   }
 
-  const exists = await checkFileExists(config, data.folderName);
+  const problemIndex = await getProblemIndex();
+  const existsLocally = !!problemIndex[data.folderName];
+  const existsOnGitHub = await checkFileExists(config, data.folderName);
+  
+  const exists = existsLocally || existsOnGitHub;
   const action = exists ? 'Updated' : 'Created';
 
   await pushToGitHub(config, data);
@@ -532,6 +540,8 @@ async function handleSyncSubmission(data) {
     memory: data.memory,
     submissionId: data.submissionId,
   });
+
+  return { action };
 }
 
 // ============================================================

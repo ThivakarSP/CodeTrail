@@ -90,13 +90,21 @@ export function generateReadme(data) {
 
   // Add references section if any provided
   const hasRefs =
-    references && (references.youtube || references.notes || references.additionalRefs);
+    references && (references.youtube || references.timeComplexity || references.spaceComplexity || references.notes || references.additionalRefs);
   if (hasRefs) {
     readme += `---\n\n`;
     readme += `## References\n\n`;
 
     if (references.youtube) {
       readme += `**Video Explanation**: [Watch on YouTube](${references.youtube})\n\n`;
+    }
+
+    if (references.timeComplexity) {
+      readme += `**Time Complexity**: ${references.timeComplexity}\n\n`;
+    }
+
+    if (references.spaceComplexity) {
+      readme += `**Space Complexity**: ${references.spaceComplexity}\n\n`;
     }
 
     if (references.notes) {
@@ -148,13 +156,15 @@ export function appendVersionToReadme(existingContent, submission, version) {
   versionSection += `*Solved on: ${date}*\n`;
 
   const refs = submission.references || {};
-  if (refs.youtube || refs.notes || refs.approach || refs.method || refs.additionalRefs) {
+  if (refs.youtube || refs.timeComplexity || refs.spaceComplexity || refs.notes || refs.approach || refs.method || refs.additionalRefs) {
     versionSection += `\n### References (v${version})\n\n`;
 
     const method = refs.method || refs.approach;
     if (method) versionSection += `**Approach**: ${method}\n\n`;
 
     if (refs.youtube) versionSection += `**Video**: [Watch on YouTube](${refs.youtube})\n\n`;
+    if (refs.timeComplexity) versionSection += `**Time Complexity**: ${refs.timeComplexity}\n\n`;
+    if (refs.spaceComplexity) versionSection += `**Space Complexity**: ${refs.spaceComplexity}\n\n`;
     if (refs.notes) versionSection += `**Notes**:\n${refs.notes}\n\n`;
     if (refs.additionalRefs) versionSection += `**Resources**: ${refs.additionalRefs}\n\n`;
   }

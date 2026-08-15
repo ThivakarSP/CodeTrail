@@ -86,8 +86,33 @@
 
     const isAccepted = CT.scraper.detectAcceptedStatus(SELECTORS);
     if (isAccepted) {
+      // Don't auto-popup when just visiting old submission pages
+      const lastSubmitTime = parseInt(sessionStorage.getItem('ct_last_submit_time') || '0', 10);
+      const minsSinceSubmitClick = (Date.now() - lastSubmitTime) / 60000;
+      
+      if (minsSinceSubmitClick > 5) {
+        return;
+      }
+
       submissionInProgress = true;
       console.log('CodeTrail: Detected accepted submission');
+
+      // Provide immediate UI feedback while waiting for DOM/API
+      CT.modal.injectModal();
+      CT.modal.showModal();
+      const contentEl = CT.modal.getElement('codetrail-content');
+      if (contentEl) {
+        contentEl.innerHTML = `
+            <div id="codetrail-loading">
+                <div class="spinner"></div>
+                <p class="text-muted" style="margin-top:10px;">Fetching submission...</p>
+            </div>
+            <div id="codetrail-form" style="display:none;">
+                <p id="codetrail-title"></p>
+                <p class="text-muted" style="margin-bottom:5px;">Opening sync window...</p>
+            </div>
+        `;
+      }
 
       // Wait a moment for DOM to settle
       setTimeout(processSubmission, 1000);

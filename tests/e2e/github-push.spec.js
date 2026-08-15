@@ -15,7 +15,9 @@ test.describe('CodeTrail Background Worker (GitHub Push) Tests', () => {
     readmeDescription: 'Given an array of integers...',
     references: {
       method: 'Two Pointers',
-      notes: 'O(n) time',
+      timeComplexity: 'O(n)',
+      spaceComplexity: 'O(1)',
+      notes: 'Some notes',
       youtube: '',
     },
   };

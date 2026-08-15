@@ -465,13 +465,20 @@ export async function pushToGitHub(config, submission) {
     // 3. Main README
     const problemIndex = await getProblemIndex();
 
+    // Determine tags to use for mapping in the main README
+    let mappedTags = (tags || []).map((t) => (typeof t === 'string' ? t : t.name));
+    if (submission.references && submission.references.method) {
+      mappedTags = [submission.references.method];
+    }
+    mappedTags.sort();
+
     // Update local index
     problemIndex[folderName] = {
       folderName,
       title,
       number,
       difficulty,
-      tags: (tags || []).map((t) => (typeof t === 'string' ? t : t.name)).sort(),
+      tags: mappedTags,
       url: submission.url,
     };
     await saveProblemIndex(problemIndex);
