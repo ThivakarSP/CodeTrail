@@ -225,7 +225,8 @@ Respond strictly in valid JSON format with keys: "method", "timeComplexity", "sp
       });
 
       if (!response.ok) {
-        throw new Error(`API Error: ${response.status}`);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(`API Error ${response.status}: ${errorData.error?.message || 'Unknown error'}`);
       }
 
       const data = await response.json();

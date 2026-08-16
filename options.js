@@ -15,6 +15,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   const statusMessage = document.getElementById('statusMessage');
   const groqApiKeyInput = document.getElementById('groqApiKey');
   const toggleGroqKeyBtn = document.getElementById('toggleGroqKey');
+  const testGroqBtn = document.getElementById('testGroqBtn');
+  const groqStatus = document.getElementById('groqStatus');
 
   // Load saved settings
   await loadSettings();
@@ -47,6 +49,42 @@ document.addEventListener('DOMContentLoaded', async () => {
     const config = await getConfig();
     await saveConfig({ ...config, groqApiKey });
     showStatus('API Key saved!', 'success');
+  });
+
+  // Test Groq API Key
+  testGroqBtn?.addEventListener('click', async () => {
+    const groqApiKey = groqApiKeyInput.value.trim();
+    if (!groqApiKey) {
+      groqStatus.textContent = 'Please enter an API key first.';
+      groqStatus.style.color = 'var(--error)';
+      return;
+    }
+    
+    testGroqBtn.disabled = true;
+    groqStatus.textContent = 'Testing...';
+    groqStatus.style.color = 'var(--text-secondary)';
+
+    try {
+      const response = await fetch('https://api.groq.com/openai/v1/models', {
+        headers: {
+          'Authorization': `Bearer ${groqApiKey}`,
+        }
+      });
+      
+      const data = await response.json().catch(() => ({}));
+      if (response.ok) {
+        groqStatus.textContent = '✅ API Key is valid!';
+        groqStatus.style.color = 'var(--success)';
+      } else {
+        groqStatus.textContent = `❌ Error ${response.status}: ${data.error?.message || 'Invalid request'}`;
+        groqStatus.style.color = 'var(--error)';
+      }
+    } catch (err) {
+      groqStatus.textContent = `❌ Network Error: ${err.message}`;
+      groqStatus.style.color = 'var(--error)';
+    } finally {
+      testGroqBtn.disabled = false;
+    }
   });
 
   // Save settings
