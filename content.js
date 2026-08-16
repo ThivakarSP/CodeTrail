@@ -94,6 +94,18 @@
         return;
       }
 
+      // Fast cache check for URL submission ID before showing UI
+      const submissionId = CT.scraper.extractSubmissionIdFromUrl(window.location.href);
+      if (submissionId) {
+        const cacheObj = await new Promise((resolve) =>
+          chrome.storage.local.get(['CT_SYNCED_CACHE'], resolve)
+        );
+        const cache = cacheObj.CT_SYNCED_CACHE || {};
+        if (cache[`sub_${submissionId}`]) {
+          return; // Already processed this submission, don't pop up
+        }
+      }
+
       submissionInProgress = true;
       console.log('CodeTrail: Detected accepted submission');
 

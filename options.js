@@ -41,6 +41,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
+  // Auto-save Gemini API Key on change/blur
+  geminiApiKeyInput?.addEventListener('change', async () => {
+    const geminiApiKey = geminiApiKeyInput.value.trim();
+    const config = await getConfig();
+    await saveConfig({ ...config, geminiApiKey });
+    showStatus('API Key saved!', 'success');
+  });
+
   // Save settings
   form?.addEventListener('submit', async (e) => {
     e.preventDefault();
