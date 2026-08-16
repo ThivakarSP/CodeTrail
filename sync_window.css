@@ -9,6 +9,7 @@ html {
   color: var(--text-primary);
   height: 100%;
   overflow: hidden;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 .container {
@@ -20,10 +21,12 @@ html {
 
 header {
   padding: 15px 20px;
-  background: rgba(255, 255, 255, 0.05);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--bg-glass);
+  border-bottom: 1px solid var(--border-color);
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  backdrop-filter: blur(12px);
 }
 
 .logo {
@@ -32,15 +35,36 @@ header {
   gap: 10px;
 }
 
-.logo h1 {
+.logo h2 {
   font-size: 18px;
   margin: 0;
   font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* Theme Toggle */
+.theme-toggle-btn {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  border-radius: var(--radius-full);
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.theme-toggle-btn:hover {
+  background: var(--bg-glass-elevated);
+  transform: scale(1.05);
 }
 
 main {
   flex: 1;
-  padding: 20px;
+  padding: 24px;
   overflow-y: auto;
   position: relative;
 }
@@ -59,42 +83,56 @@ main {
   text-align: left;
   height: auto;
   justify-content: flex-start;
+  background: var(--bg-glass);
+  padding: 24px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-glass);
+  backdrop-filter: blur(8px);
+  box-shadow: var(--shadow-sm);
 }
 
 .problem-info {
-  margin-bottom: 20px;
-  padding-bottom: 15px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .problem-info h2 {
-  margin: 0 0 10px 0;
-  font-size: 20px;
-  color: #ffa116;
+  margin: 0 0 12px 0;
+  font-size: 22px;
+  color: var(--text-primary);
 }
 
 .input-group {
-  margin-bottom: 15px;
+  margin-bottom: 20px;
 }
 
 .input-group label {
   display: block;
-  font-size: 12px;
-  color: #aaa;
-  margin-bottom: 5px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
 }
 
 input,
 textarea,
 select {
   width: 100%;
-  padding: 10px;
-  background: #222;
-  border: 1px solid #444;
-  border-radius: 6px;
-  color: white;
+  padding: 12px 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
   box-sizing: border-box;
   font-size: 14px;
+  transition: all 0.2s ease;
+  font-family: var(--font-family);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--text-muted);
 }
 
 select {
@@ -102,16 +140,18 @@ select {
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
-  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffa116' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238c857b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
   background-repeat: no-repeat;
-  background-position: right 10px center;
+  background-position: right 14px center;
   background-size: 16px;
-  padding-right: 30px;
+  padding-right: 36px;
 }
 
+/* Ensure the arrow has good contrast in light and dark mode, using CSS filter trick or just neutral gray SVG (used #8c857b above) */
+
 select option {
-  background: #222;
-  color: white;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
   padding: 10px;
 }
 
@@ -124,58 +164,65 @@ input:focus,
 textarea:focus,
 select:focus {
   outline: none;
-  border-color: #ffa116;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px var(--accent-glass);
+  background: var(--bg-primary);
 }
 
 footer {
-  padding: 15px 20px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.05);
+  padding: 16px 24px;
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-glass);
   display: flex;
-  justify-content: center;
-  gap: 10px;
+  justify-content: flex-end;
+  gap: 12px;
+  backdrop-filter: blur(12px);
 }
 
 button {
-  padding: 8px 16px;
-  border-radius: 6px;
+  padding: 10px 20px;
+  border-radius: var(--radius-md);
   cursor: pointer;
   font-size: 14px;
   font-weight: 500;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
+  font-family: var(--font-family);
 }
 
 .btn-secondary {
   background: transparent;
-  border: 1px solid #444;
-  color: #ccc;
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
 }
 
 .btn-secondary:hover {
-  border-color: #666;
-  color: white;
+  background: var(--bg-glass);
+  border-color: var(--text-secondary);
 }
 
 .btn-primary {
-  background: #ffa116;
+  background: var(--accent-primary);
   border: none;
-  color: black;
+  color: #fff;
   font-weight: 600;
+  box-shadow: var(--shadow-sm);
 }
 
 .btn-primary:hover {
-  background: #ffb13d;
+  background: var(--accent-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
 }
 
 /* Spinner */
 .spinner {
-  width: 30px;
-  height: 30px;
-  border: 3px solid rgba(255, 255, 255, 0.3);
-  border-top-color: #ffa116;
+  width: 36px;
+  height: 36px;
+  border: 3px solid var(--border-color);
+  border-top-color: var(--accent-primary);
   border-radius: 50%;
   animation: spin 1s linear infinite;
-  margin-bottom: 15px;
+  margin-bottom: 16px;
 }
 
 @keyframes spin {
@@ -185,21 +232,22 @@ button {
 }
 
 .success-icon {
-  font-size: 48px;
-  margin-bottom: 15px;
+  font-size: 56px;
+  margin-bottom: 16px;
 }
 
 .error-icon {
-  font-size: 48px;
-  margin-bottom: 15px;
+  font-size: 56px;
+  margin-bottom: 16px;
 }
 
 .tag {
   display: inline-block;
-  background: #333;
-  padding: 2px 8px;
-  border-radius: 12px;
-  font-size: 11px;
-  margin-right: 5px;
-  color: #ccc;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  margin-right: 6px;
+  color: var(--text-primary);
 }
