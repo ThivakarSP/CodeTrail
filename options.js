@@ -13,8 +13,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   const testBtn = document.getElementById('testBtn');
   const clearBtn = document.getElementById('clearBtn');
   const statusMessage = document.getElementById('statusMessage');
-  const geminiApiKeyInput = document.getElementById('geminiApiKey');
-  const toggleGeminiKeyBtn = document.getElementById('toggleGeminiKey');
+  const groqApiKeyInput = document.getElementById('groqApiKey');
+  const toggleGroqKeyBtn = document.getElementById('toggleGroqKey');
 
   // Load saved settings
   await loadSettings();
@@ -30,22 +30,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  // Toggle Gemini Key visibility
-  toggleGeminiKeyBtn?.addEventListener('click', () => {
-    if (geminiApiKeyInput.type === 'password') {
-      geminiApiKeyInput.type = 'text';
-      toggleGeminiKeyBtn.textContent = 'Hide';
+  // Toggle Groq Key visibility
+  toggleGroqKeyBtn?.addEventListener('click', () => {
+    if (groqApiKeyInput.type === 'password') {
+      groqApiKeyInput.type = 'text';
+      toggleGroqKeyBtn.textContent = 'Hide';
     } else {
-      geminiApiKeyInput.type = 'password';
-      toggleGeminiKeyBtn.textContent = 'Show';
+      groqApiKeyInput.type = 'password';
+      toggleGroqKeyBtn.textContent = 'Show';
     }
   });
 
-  // Auto-save Gemini API Key on change/blur
-  geminiApiKeyInput?.addEventListener('change', async () => {
-    const geminiApiKey = geminiApiKeyInput.value.trim();
+  // Auto-save Groq API Key on change/blur
+  groqApiKeyInput?.addEventListener('change', async () => {
+    const groqApiKey = groqApiKeyInput.value.trim();
     const config = await getConfig();
-    await saveConfig({ ...config, geminiApiKey });
+    await saveConfig({ ...config, groqApiKey });
     showStatus('API Key saved!', 'success');
   });
 
@@ -73,7 +73,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (config.username) usernameInput.value = config.username;
     if (config.repo) repoInput.value = config.repo;
     if (config.token) tokenInput.value = config.token;
-    if (config.geminiApiKey) geminiApiKeyInput.value = config.geminiApiKey;
+    if (config.groqApiKey) groqApiKeyInput.value = config.groqApiKey;
   }
 
   // Save settings to storage
@@ -81,7 +81,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const username = usernameInput.value.trim();
     const repo = repoInput.value.trim();
     const token = tokenInput.value.trim();
-    const geminiApiKey = geminiApiKeyInput.value.trim();
+    const groqApiKey = groqApiKeyInput.value.trim();
 
     if (!username || !repo || !token) {
       showStatus('Please fill in all fields', 'error');
@@ -114,7 +114,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         username,
         repo,
         token,
-        geminiApiKey,
+        groqApiKey,
       });
 
       showStatus('Settings saved successfully!', 'success');
@@ -228,7 +228,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     usernameInput.value = '';
     repoInput.value = '';
     tokenInput.value = '';
-    geminiApiKeyInput.value = '';
+    groqApiKeyInput.value = '';
 
     showStatus('All data cleared', 'success');
   }

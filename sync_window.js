@@ -171,8 +171,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!currentProblemData || !currentProblemData.code) return;
 
     const config = await getConfig();
-    if (!config.geminiApiKey) {
-      elements.aiStatus.textContent = 'Please configure your Gemini API Key in Settings.';
+    if (!config.groqApiKey) {
+      elements.aiStatus.textContent = 'Please configure your Groq API Key in Settings.';
       elements.aiStatus.style.color = 'var(--error)';
       return;
     }
@@ -201,17 +201,22 @@ Based on the code, determine:
 Respond strictly in valid JSON format with keys: "method", "timeComplexity", "spaceComplexity", "notes". Do not output markdown code blocks, just raw JSON.
 `;
 
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${config.geminiApiKey}`, {
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${config.groqApiKey}`,
         },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: {
-            temperature: 0.1, // Low temperature for consistent JSON output
-            responseMimeType: "application/json",
-          }
+          model: 'llama3-8b-8192',
+          messages: [
+            {
+              role: 'user',
+              content: prompt,
+            }
+          ],
+          response_format: { type: 'json_object' },
+          temperature: 0.1,
         })
       });
 
@@ -220,7 +225,7 @@ Respond strictly in valid JSON format with keys: "method", "timeComplexity", "sp
       }
 
       const data = await response.json();
-      const text = data.candidates[0].content.parts[0].text;
+      const text = data.choices[0].message.content;
       
       try {
         const result = JSON.parse(text);
