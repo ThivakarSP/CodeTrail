@@ -208,7 +208,7 @@ Respond strictly in valid JSON format with keys: "method", "timeComplexity", "sp
           'Authorization': `Bearer ${config.groqApiKey}`,
         },
         body: JSON.stringify({
-          model: 'llama3-8b-8192',
+          model: 'llama-3.1-8b-instant',
           messages: [
             {
               role: 'system',
