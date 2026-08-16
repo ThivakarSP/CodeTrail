@@ -13,6 +13,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   const testBtn = document.getElementById('testBtn');
   const clearBtn = document.getElementById('clearBtn');
   const statusMessage = document.getElementById('statusMessage');
+  const geminiApiKeyInput = document.getElementById('geminiApiKey');
+  const toggleGeminiKeyBtn = document.getElementById('toggleGeminiKey');
 
   // Load saved settings
   await loadSettings();
@@ -25,6 +27,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     } else {
       tokenInput.type = 'password';
       toggleTokenBtn.textContent = 'Show';
+    }
+  });
+
+  // Toggle Gemini Key visibility
+  toggleGeminiKeyBtn?.addEventListener('click', () => {
+    if (geminiApiKeyInput.type === 'password') {
+      geminiApiKeyInput.type = 'text';
+      toggleGeminiKeyBtn.textContent = 'Hide';
+    } else {
+      geminiApiKeyInput.type = 'password';
+      toggleGeminiKeyBtn.textContent = 'Show';
     }
   });
 
@@ -52,6 +65,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (config.username) usernameInput.value = config.username;
     if (config.repo) repoInput.value = config.repo;
     if (config.token) tokenInput.value = config.token;
+    if (config.geminiApiKey) geminiApiKeyInput.value = config.geminiApiKey;
   }
 
   // Save settings to storage
@@ -59,6 +73,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const username = usernameInput.value.trim();
     const repo = repoInput.value.trim();
     const token = tokenInput.value.trim();
+    const geminiApiKey = geminiApiKeyInput.value.trim();
 
     if (!username || !repo || !token) {
       showStatus('Please fill in all fields', 'error');
@@ -91,6 +106,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         username,
         repo,
         token,
+        geminiApiKey,
       });
 
       showStatus('Settings saved successfully!', 'success');
@@ -204,6 +220,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     usernameInput.value = '';
     repoInput.value = '';
     tokenInput.value = '';
+    geminiApiKeyInput.value = '';
 
     showStatus('All data cleared', 'success');
   }

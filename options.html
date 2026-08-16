@@ -63,6 +63,26 @@
         </form>
 
         <section class="card">
+          <h2>AI Features</h2>
+          <p class="description">Configure AI to automatically analyze your code and suggest time/space complexity.</p>
+          <div class="form-group">
+            <label for="geminiApiKey">Gemini API Key</label>
+            <div class="input-with-toggle">
+              <input type="password" id="geminiApiKey" placeholder="AIza..." form="settingsForm" />
+              <button
+                type="button"
+                class="toggle-visibility"
+                id="toggleGeminiKey"
+                aria-label="Toggle key visibility"
+              >
+                👁️
+              </button>
+            </div>
+            <span class="hint">Get a free key from <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color: var(--accent-primary);">Google AI Studio</a>.</span>
+          </div>
+        </section>
+
+        <section class="card">
           <h2>How to Get a GitHub Token</h2>
           <ol class="instructions">
             <li>Go to <strong>GitHub Settings</strong> > <strong>Developer settings</strong></li>

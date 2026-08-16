@@ -1,4 +1,5 @@
 import { sanitizeYoutubeUrl, sanitizeMarkdown } from './utils/sanitize.js';
+import { getConfig } from './utils/storage.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
   // UI Elements
@@ -22,6 +23,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     cancelBtn: document.getElementById('cancel-btn'),
     retryBtn: document.getElementById('retry-btn'),
     errorMsg: document.getElementById('error-message'),
+    aiAnalyzeBtn: document.getElementById('ai-analyze-btn'),
+    aiStatus: document.getElementById('ai-status'),
   };
 
   let currentProblemData = null;
@@ -51,6 +54,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     switchView('form');
     elements.footer.style.display = 'flex';
   });
+  elements.aiAnalyzeBtn?.addEventListener('click', handleAiAnalyze);
 
   // Listen for background messages (success/error/progress)
   chrome.runtime.onMessage.addListener((message) => {
@@ -161,6 +165,101 @@ document.addEventListener('DOMContentLoaded', async () => {
     // UI Feedback
     elements.syncBtn.textContent = 'Syncing...';
     elements.syncBtn.disabled = true;
+  }
+
+  async function handleAiAnalyze() {
+    if (!currentProblemData || !currentProblemData.code) return;
+
+    const config = await getConfig();
+    if (!config.geminiApiKey) {
+      elements.aiStatus.textContent = 'Please configure your Gemini API Key in Settings.';
+      elements.aiStatus.style.color = 'var(--error)';
+      return;
+    }
+
+    elements.aiAnalyzeBtn.disabled = true;
+    const originalText = elements.aiAnalyzeBtn.innerHTML;
+    elements.aiAnalyzeBtn.innerHTML = '<div class="spinner" style="width: 16px; height: 16px; margin: 0; border-width: 2px;"></div> Analyzing...';
+    elements.aiStatus.textContent = '';
+
+    try {
+      const prompt = `
+You are an expert software engineer analyzing a LeetCode solution.
+Analyze the following code for the problem "${currentProblemData.title}".
+
+Code:
+\`\`\`${currentProblemData.language}
+${currentProblemData.code}
+\`\`\`
+
+Based on the code, determine:
+1. The most appropriate "Method / Approach". Pick the CLOSEST match from this exact list: [Array, String, Hash Table, Two Pointers, Sliding Window, Binary Search, Dynamic Programming, Backtracking, Recursion, Depth-First Search, Breadth-First Search, Graph, Tree, Trie, Heap, Stack, Queue, Linked List, Greedy, Divide and Conquer, Bit Manipulation, Math]. If none fit, use the closest one.
+2. The Time Complexity (e.g., O(1), O(log n), O(n), O(n log n), O(n^2), O(n^3), O(2^n), O(n!)).
+3. The Space Complexity (using the same options as Time Complexity).
+4. A brief, 1-2 sentence explanation for the notes section.
+
+Respond strictly in valid JSON format with keys: "method", "timeComplexity", "spaceComplexity", "notes". Do not output markdown code blocks, just raw JSON.
+`;
+
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${config.geminiApiKey}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: {
+            temperature: 0.1, // Low temperature for consistent JSON output
+            responseMimeType: "application/json",
+          }
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`API Error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const text = data.candidates[0].content.parts[0].text;
+      
+      try {
+        const result = JSON.parse(text);
+        
+        // Populate fields
+        if (result.method) {
+          const methodSelect = elements.method;
+          for (let i = 0; i < methodSelect.options.length; i++) {
+            if (methodSelect.options[i].value.toLowerCase() === result.method.toLowerCase()) {
+              methodSelect.selectedIndex = i;
+              break;
+            }
+          }
+        }
+
+        if (result.timeComplexity) elements.timeComplexity.value = result.timeComplexity;
+        if (result.spaceComplexity) elements.spaceComplexity.value = result.spaceComplexity;
+        if (result.notes) elements.notes.value = result.notes;
+
+        elements.aiStatus.textContent = 'Analysis complete!';
+        elements.aiStatus.style.color = 'var(--success)';
+        saveDraft(); // Save the new values
+        
+        // Clear success message after 3s
+        setTimeout(() => {
+          elements.aiStatus.textContent = '';
+        }, 3000);
+
+      } catch (parseError) {
+        throw new Error('Failed to parse AI response');
+      }
+
+    } catch (error) {
+      elements.aiStatus.textContent = error.message;
+      elements.aiStatus.style.color = 'var(--error)';
+    } finally {
+      elements.aiAnalyzeBtn.disabled = false;
+      elements.aiAnalyzeBtn.innerHTML = originalText;
+    }
   }
 
   function switchView(viewName) {

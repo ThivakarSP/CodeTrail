@@ -11,6 +11,7 @@ const KEYS = {
   HISTORY: 'codetrail_history',
   PROBLEM_INDEX: 'codetrail_problem_index',
   MODAL_POS: 'codetrail_modal_pos',
+  GEMINI_KEY: 'codetrail_gemini_key',
 };
 
 // Legacy keys for migration
@@ -35,6 +36,7 @@ export async function getConfig() {
     KEYS.REPO,
     KEYS.TOKEN,
     KEYS.ENABLED,
+    KEYS.GEMINI_KEY,
     // Include legacy keys to check for migration
     LEGACY_KEYS.USERNAME,
     LEGACY_KEYS.REPO,
@@ -49,6 +51,7 @@ export async function getConfig() {
     repo: config[KEYS.REPO] || '',
     token: config[KEYS.TOKEN] || '',
     enabled: config[KEYS.ENABLED] !== false,
+    geminiApiKey: config[KEYS.GEMINI_KEY] || '',
   };
 
   // If new keys are empty but old keys exist, migrate
@@ -86,6 +89,7 @@ export async function saveConfig(config) {
   if (config.repo !== undefined) data[KEYS.REPO] = config.repo;
   if (config.token !== undefined) data[KEYS.TOKEN] = config.token;
   if (config.enabled !== undefined) data[KEYS.ENABLED] = config.enabled;
+  if (config.geminiApiKey !== undefined) data[KEYS.GEMINI_KEY] = config.geminiApiKey;
 
   await setStorage(data);
 }
