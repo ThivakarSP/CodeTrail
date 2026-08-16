@@ -211,6 +211,10 @@ Respond strictly in valid JSON format with keys: "method", "timeComplexity", "sp
           model: 'llama3-8b-8192',
           messages: [
             {
+              role: 'system',
+              content: 'You are an expert software engineer analyzing LeetCode solutions. You must respond strictly in JSON format.'
+            },
+            {
               role: 'user',
               content: prompt,
             }
