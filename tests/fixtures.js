@@ -6,7 +6,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export const test = base.extend({
-  context: async ({ browser }, use) => {
+  context: async ({ browser: _browser }, use) => {
     // Path to the root of the unpacked extension
     const pathToExtension = path.join(__dirname, '..');
 

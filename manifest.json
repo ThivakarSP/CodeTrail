@@ -4,10 +4,20 @@
   "version": "2.0.0",
   "description": "Automatically sync your LeetCode solutions to GitHub with topic-based organization",
   "permissions": ["storage", "notifications", "webNavigation", "alarms", "unlimitedStorage"],
-  "host_permissions": ["https://api.github.com/*", "https://leetcode.com/*"],
+  "host_permissions": [
+    "https://api.github.com/*",
+    "https://leetcode.com/*",
+    "https://api.groq.com/*"
+  ],
   "background": {
     "service_worker": "background.js",
     "type": "module"
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "codetrail@thivakar.com",
+      "strict_min_version": "109.0"
+    }
   },
   "content_scripts": [
     {

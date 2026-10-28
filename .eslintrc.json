@@ -22,5 +22,6 @@
   },
   "globals": {
     "chrome": "readonly"
-  }
+  },
+  "ignorePatterns": ["dist/**", "coverage/**", "node_modules/**"]
 }

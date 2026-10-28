@@ -516,7 +516,7 @@ function getFileExtension(language) {
   return 'txt';
 }
 
-function generateCommitMessage(submission, version, components) {
+function generateCommitMessage(submission, _version, _components) {
   const { runtime, runtimePercentile, memory, memoryPercentile } = submission;
   let stats = [];
 

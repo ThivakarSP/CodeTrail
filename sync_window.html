@@ -31,40 +31,87 @@
             <div class="tags" id="problem-tags"></div>
           </div>
 
-          <div style="margin-bottom: 20px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-            <button type="button" id="ai-analyze-btn" class="btn-primary" style="background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%); color: white; display: flex; align-items: center; justify-content: center; gap: 8px; flex: 1 1 auto; white-space: nowrap; padding: 10px;">
+          <div
+            style="
+              margin-bottom: 20px;
+              display: flex;
+              align-items: center;
+              gap: 12px;
+              flex-wrap: wrap;
+            "
+          >
+            <button
+              type="button"
+              id="ai-analyze-btn"
+              class="btn-primary"
+              style="
+                background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
+                color: white;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+                flex: 1 1 auto;
+                white-space: nowrap;
+                padding: 10px;
+              "
+            >
               <span>✨</span> Auto-Analyze with AI
             </button>
-            <span id="ai-status" class="hint" style="margin: 0; color: var(--accent-primary); flex: 1 1 100%;"></span>
+            <span
+              id="ai-status"
+              class="hint"
+              style="margin: 0; color: var(--accent-primary); flex: 1 1 100%"
+            ></span>
           </div>
 
           <div class="input-group">
-            <label for="method">Method / Approach</label>
+            <label for="method">Heading / Method</label>
             <select id="method">
-              <option value="">-- Select Method --</option>
-              <option value="Array">Array</option>
-              <option value="String">String</option>
-              <option value="Hash Table">Hash Table</option>
-              <option value="Two Pointers">Two Pointers</option>
-              <option value="Sliding Window">Sliding Window</option>
-              <option value="Binary Search">Binary Search</option>
-              <option value="Dynamic Programming">Dynamic Programming</option>
-              <option value="Backtracking">Backtracking</option>
-              <option value="Recursion">Recursion</option>
-              <option value="Depth-First Search">Depth-First Search</option>
-              <option value="Breadth-First Search">Breadth-First Search</option>
-              <option value="Graph">Graph</option>
-              <option value="Tree">Tree</option>
-              <option value="Trie">Trie</option>
-              <option value="Heap">Heap</option>
-              <option value="Stack">Stack</option>
-              <option value="Queue">Queue</option>
-              <option value="Linked List">Linked List</option>
-              <option value="Greedy">Greedy</option>
-              <option value="Divide and Conquer">Divide and Conquer</option>
-              <option value="Bit Manipulation">Bit Manipulation</option>
-              <option value="Math">Math</option>
+              <option value="">-- Select Heading / Method --</option>
+              <optgroup label="Data Structures & Algorithms">
+                <option value="Array">Array</option>
+                <option value="String">String</option>
+                <option value="Hash Table">Hash Table</option>
+                <option value="Two Pointers">Two Pointers</option>
+                <option value="Sliding Window">Sliding Window</option>
+                <option value="Binary Search">Binary Search</option>
+                <option value="Dynamic Programming">Dynamic Programming</option>
+                <option value="Backtracking">Backtracking</option>
+                <option value="Recursion">Recursion</option>
+                <option value="Depth-First Search">Depth-First Search</option>
+                <option value="Breadth-First Search">Breadth-First Search</option>
+                <option value="Graph">Graph</option>
+                <option value="Tree">Tree</option>
+                <option value="Trie">Trie</option>
+                <option value="Heap">Heap</option>
+                <option value="Stack">Stack</option>
+                <option value="Queue">Queue</option>
+                <option value="Linked List">Linked List</option>
+                <option value="Greedy">Greedy</option>
+                <option value="Divide and Conquer">Divide and Conquer</option>
+                <option value="Bit Manipulation">Bit Manipulation</option>
+                <option value="Math">Math</option>
+              </optgroup>
+              <optgroup label="Database & Data Analysis">
+                <option value="SQL">SQL</option>
+                <option value="Pandas">Pandas</option>
+                <option value="Database">Database</option>
+              </optgroup>
+              <optgroup label="Other Topics">
+                <option value="Shell">Shell</option>
+                <option value="Concurrency">Concurrency</option>
+                <option value="Others">Others (Custom Heading)</option>
+              </optgroup>
             </select>
+          </div>
+
+          <div
+            class="input-group"
+            id="customMethodGroup"
+            style="display: none; margin-top: -10px; margin-bottom: 15px"
+          >
+            <input type="text" id="customMethod" placeholder="e.g. SQL, Pandas, Window Function, etc." />
           </div>
 
           <div class="input-group">
@@ -79,7 +126,16 @@
               <option value="O(n^3)">O(n^3)</option>
               <option value="O(2^n)">O(2^n)</option>
               <option value="O(n!)">O(n!)</option>
+              <option value="Others">Others</option>
             </select>
+          </div>
+
+          <div
+            class="input-group"
+            id="customTimeComplexityGroup"
+            style="display: none; margin-top: -10px; margin-bottom: 15px"
+          >
+            <input type="text" id="customTimeComplexity" placeholder="e.g. O(m * n)" />
           </div>
 
           <div class="input-group">
@@ -94,7 +150,16 @@
               <option value="O(n^3)">O(n^3)</option>
               <option value="O(2^n)">O(2^n)</option>
               <option value="O(n!)">O(n!)</option>
+              <option value="Others">Others</option>
             </select>
+          </div>
+
+          <div
+            class="input-group"
+            id="customSpaceComplexityGroup"
+            style="display: none; margin-top: -10px; margin-bottom: 15px"
+          >
+            <input type="text" id="customSpaceComplexity" placeholder="e.g. O(m * n)" />
           </div>
 
           <div class="input-group">

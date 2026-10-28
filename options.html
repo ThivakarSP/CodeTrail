@@ -64,7 +64,9 @@
 
         <section class="card">
           <h2>AI Features</h2>
-          <p class="description">Configure AI to automatically analyze your code and suggest time/space complexity.</p>
+          <p class="description">
+            Configure AI to automatically analyze your code and suggest time/space complexity.
+          </p>
           <div class="form-group">
             <label for="groqApiKey">Groq API Key</label>
             <div class="input-with-toggle">
@@ -78,10 +80,107 @@
                 👁️
               </button>
             </div>
-            <span class="hint">Get a free key from <a href="https://console.groq.com/keys" target="_blank" style="color: var(--accent-primary);">Groq Console</a>.</span>
-            <div style="margin-top: 15px; display: flex; align-items: center; gap: 10px;">
-               <button type="button" id="testGroqBtn" class="btn-secondary" style="padding: 6px 12px; font-size: 0.9em;">Test API Key</button>
-               <span id="groqStatus" style="font-size: 0.9em;"></span>
+            <span class="hint"
+              >Get a free key from
+              <a
+                href="https://console.groq.com/keys"
+                target="_blank"
+                style="color: var(--accent-primary)"
+                >Groq Console</a
+              >.</span
+            >
+            <div style="margin-top: 15px; display: flex; align-items: center; gap: 10px">
+              <button
+                type="button"
+                id="testGroqBtn"
+                class="btn-secondary"
+                style="padding: 6px 12px; font-size: 0.9em"
+              >
+                Test API Key
+              </button>
+              <span id="groqStatus" style="font-size: 0.9em"></span>
+            </div>
+            <div class="form-group" style="margin-top: 15px">
+              <label for="groqModel">Groq Model Name</label>
+              <input
+                type="text"
+                id="groqModel"
+                list="groqModelList"
+                placeholder="e.g. llama-3.3-70b-versatile, llama3-70b-8192"
+                form="settingsForm"
+              />
+              <datalist id="groqModelList">
+                <option value="llama-3.3-70b-versatile">llama-3.3-70b-versatile</option>
+                <option value="llama3-70b-8192">llama3-70b-8192</option>
+                <option value="llama3-8b-8192">llama3-8b-8192</option>
+                <option value="mixtral-8x7b-32768">mixtral-8x7b-32768</option>
+                <option value="gemma2-9b-it">gemma2-9b-it</option>
+                <option value="deepseek-r1-distill-llama-70b">deepseek-r1-distill-llama-70b</option>
+                <option value="openai/gpt-oss-20b">openai/gpt-oss-20b</option>
+                <option value="openai/gpt-oss-120b">openai/gpt-oss-120b</option>
+                <option value="qwen/qwen3.8-27b">qwen/qwen3.8-27b</option>
+              </datalist>
+              <span class="hint"
+                >Enter any custom model or pick one. If a model is unavailable, CodeTrail will automatically fallback and try all accessible models on your Groq account.</span
+              >
+            </div>
+          </div>
+          <div class="form-group" style="margin-top: 15px">
+            <label>AI Generation Preferences</label>
+            <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px">
+              <label
+                style="
+                  display: flex;
+                  align-items: center;
+                  gap: 8px;
+                  font-weight: normal;
+                  font-size: 0.95em;
+                "
+              >
+                <input type="checkbox" id="aiGenerateComplexity" style="width: auto" />
+                Generate Time & Space Complexity
+              </label>
+              <label
+                style="
+                  display: flex;
+                  align-items: center;
+                  gap: 8px;
+                  font-weight: normal;
+                  font-size: 0.95em;
+                "
+              >
+                <input type="checkbox" id="aiGenerateNotes" style="width: auto" />
+                Generate Notes (Explanation)
+              </label>
+            </div>
+            <div class="form-group" style="margin-top: 15px">
+              <label
+                for="aiCustomInstructions"
+                style="font-size: 0.95em; color: var(--text-secondary)"
+                >Custom Instructions for Notes (Optional)</label
+              >
+              <textarea
+                id="aiCustomInstructions"
+                placeholder="e.g. Keep notes short, under 30 words, and structure as bullet points..."
+                rows="3"
+                style="resize: vertical"
+              ></textarea>
+            </div>
+            <div class="form-group" style="margin-top: 15px">
+              <label
+                for="customHeadings"
+                style="font-size: 0.95em; color: var(--text-secondary)"
+                >Custom Headings / Topics (Optional)</label
+              >
+              <input
+                type="text"
+                id="customHeadings"
+                placeholder="e.g. SQL, Pandas, System Design, Concurrency"
+                form="settingsForm"
+              />
+              <span class="hint"
+                >Comma-separated list of custom topics/headings to add to the sync window (e.g. SQL, Pandas).</span
+              >
             </div>
           </div>
         </section>

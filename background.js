@@ -55,24 +55,26 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 // MESSAGE HANDLERS
 // ============================================================
 
-let syncWindowId = null;
+const syncWindowIds = new Set();
 
-chrome.windows.onBoundsChanged.addListener(async (win) => {
-  if (win.id === syncWindowId) {
-    await chrome.storage.local.set({
-      sync_window_bounds: {
-        left: win.left,
-        top: win.top,
-        width: win.width,
-        height: win.height,
-      },
-    });
-  }
-});
+if (chrome.windows && chrome.windows.onBoundsChanged) {
+  chrome.windows.onBoundsChanged.addListener(async (win) => {
+    if (syncWindowIds.has(win.id)) {
+      await chrome.storage.local.set({
+        sync_window_bounds: {
+          left: win.left,
+          top: win.top,
+          width: win.width,
+          height: win.height,
+        },
+      });
+    }
+  });
+}
 
 chrome.windows.onRemoved.addListener((windowId) => {
-  if (windowId === syncWindowId) {
-    syncWindowId = null;
+  if (syncWindowIds.has(windowId)) {
+    syncWindowIds.delete(windowId);
   }
 });
 
@@ -85,14 +87,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     try {
       switch (message.type) {
         case 'OPEN_SYNC_WINDOW': {
+          const syncId = message.data.titleSlug || Date.now().toString();
+          const pendingKey = `pending_sync_data_${syncId}`;
           // Save data first
-          await chrome.storage.local.set({ pending_sync_data: message.data });
+          await chrome.storage.local.set({ [pendingKey]: message.data });
 
           // Get saved bounds
           const { sync_window_bounds } = await chrome.storage.local.get('sync_window_bounds');
 
           const createOptions = {
-            url: 'sync_window.html',
+            url: `sync_window.html?id=${syncId}`,
             type: 'popup',
             focused: true,
           };
@@ -109,7 +113,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
           // Open window
           const win = await chrome.windows.create(createOptions);
-          syncWindowId = win.id;
+          syncWindowIds.add(win.id);
           return { success: true };
         }
 
@@ -212,29 +216,14 @@ async function startBulkSync() {
   const config = await getConfig();
   if (!config.username) throw new Error('GitHub not configured');
 
-  // 1. Fetch all solved questions from LeetCode
-  // We need the LeetCode username. Usually this is inferred from the session.
-  // Let's hope the user is logged in.
-
   try {
     const solvedQuestions = await fetchSolvedQuestions();
     console.log(`CodeTrail: Found ${solvedQuestions.length} solved questions.`);
 
     // 2. Filter out already synced questions
     const problemIndex = await getProblemIndex();
-    const existingSlugs = new Set(
-      Object.values(problemIndex).map((p) => p.folderName.replace(/^\d+-/, ''))
-    );
-    // Note: heuristics for slug matching might be imperfect if folder naming changed.
-    // Better: Use `titleSlug` if we stored it? We didn't explicitly store titleSlug in index.
-    // Fallback: Check if `folderName` contains the slug.
 
     const newQuestions = solvedQuestions.filter((q) => {
-      // q.titleSlug e.g. "two-sum"
-      // index check: "0001-two-sum" includes "two-sum"
-
-      // Precise check: iterate index
-      // Performance: O(N*M) but N is small (< 3000).
       for (const key in problemIndex) {
         if (key.includes(q.titleSlug)) return false;
       }
@@ -518,11 +507,7 @@ async function handleSyncSubmission(data) {
     throw new Error('GitHub not configured');
   }
 
-  const problemIndex = await getProblemIndex();
-  const existsLocally = !!problemIndex[data.folderName];
-  const existsOnGitHub = await checkFileExists(config, data.folderName);
-  
-  const exists = existsLocally || existsOnGitHub;
+  const exists = await checkFileExists(config, data.folderName);
   const action = exists ? 'Updated' : 'Created';
 
   await pushToGitHub(config, data);

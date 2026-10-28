@@ -12,6 +12,11 @@ const KEYS = {
   PROBLEM_INDEX: 'codetrail_problem_index',
   MODAL_POS: 'codetrail_modal_pos',
   GROQ_KEY: 'codetrail_groq_key',
+  GROQ_MODEL: 'codetrail_groq_model',
+  CUSTOM_HEADINGS: 'codetrail_custom_headings',
+  AI_GENERATE_NOTES: 'codetrail_ai_generate_notes',
+  AI_GENERATE_COMPLEXITY: 'codetrail_ai_generate_complexity',
+  AI_CUSTOM_INSTRUCTIONS: 'codetrail_ai_custom_instructions',
 };
 
 // Legacy keys for migration
@@ -37,6 +42,11 @@ export async function getConfig() {
     KEYS.TOKEN,
     KEYS.ENABLED,
     KEYS.GROQ_KEY,
+    KEYS.GROQ_MODEL,
+    KEYS.CUSTOM_HEADINGS,
+    KEYS.AI_GENERATE_NOTES,
+    KEYS.AI_GENERATE_COMPLEXITY,
+    KEYS.AI_CUSTOM_INSTRUCTIONS,
     // Include legacy keys to check for migration
     LEGACY_KEYS.USERNAME,
     LEGACY_KEYS.REPO,
@@ -52,6 +62,11 @@ export async function getConfig() {
     token: config[KEYS.TOKEN] || '',
     enabled: config[KEYS.ENABLED] !== false,
     groqApiKey: config[KEYS.GROQ_KEY] || '',
+    groqModel: config[KEYS.GROQ_MODEL] || 'llama-3.3-70b-versatile',
+    customHeadings: config[KEYS.CUSTOM_HEADINGS] || '',
+    aiCustomInstructions: config[KEYS.AI_CUSTOM_INSTRUCTIONS] || '',
+    aiGenerateNotes: config[KEYS.AI_GENERATE_NOTES] !== false,
+    aiGenerateComplexity: config[KEYS.AI_GENERATE_COMPLEXITY] !== false,
   };
 
   // If new keys are empty but old keys exist, migrate
@@ -90,6 +105,13 @@ export async function saveConfig(config) {
   if (config.token !== undefined) data[KEYS.TOKEN] = config.token;
   if (config.enabled !== undefined) data[KEYS.ENABLED] = config.enabled;
   if (config.groqApiKey !== undefined) data[KEYS.GROQ_KEY] = config.groqApiKey;
+  if (config.groqModel !== undefined) data[KEYS.GROQ_MODEL] = config.groqModel;
+  if (config.customHeadings !== undefined) data[KEYS.CUSTOM_HEADINGS] = config.customHeadings;
+  if (config.aiCustomInstructions !== undefined)
+    data[KEYS.AI_CUSTOM_INSTRUCTIONS] = config.aiCustomInstructions;
+  if (config.aiGenerateNotes !== undefined) data[KEYS.AI_GENERATE_NOTES] = config.aiGenerateNotes;
+  if (config.aiGenerateComplexity !== undefined)
+    data[KEYS.AI_GENERATE_COMPLEXITY] = config.aiGenerateComplexity;
 
   await setStorage(data);
 }

@@ -13,7 +13,9 @@ body {
   font-family: var(--font-family);
   background-color: var(--bg-primary);
   color: var(--text-primary);
-  transition: background-color 0.3s ease, color 0.3s ease;
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
 }
 
 .container {
@@ -214,7 +216,7 @@ header {
   background-color: #fff;
   transition: 0.3s;
   border-radius: 50%;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 input:checked + .toggle-slider {
@@ -230,7 +232,8 @@ input:checked + .toggle-slider:before {
   margin-bottom: var(--spacing-md);
 }
 
-.stats-section h2, .history-section h2 {
+.stats-section h2,
+.history-section h2 {
   font-size: var(--font-size-xs);
   font-weight: 600;
   color: var(--text-secondary);
@@ -273,9 +276,15 @@ input:checked + .toggle-slider:before {
   color: var(--text-primary);
 }
 
-.stat-easy .stat-value { color: var(--diff-easy); }
-.stat-medium .stat-value { color: var(--diff-medium); }
-.stat-hard .stat-value { color: var(--diff-hard); }
+.stat-easy .stat-value {
+  color: var(--diff-easy);
+}
+.stat-medium .stat-value {
+  color: var(--diff-medium);
+}
+.stat-hard .stat-value {
+  color: var(--diff-hard);
+}
 
 /* Velocity Stats */
 .velocity-section {
@@ -413,9 +422,18 @@ input:checked + .toggle-slider:before {
   font-size: 10px;
 }
 
-.difficulty.easy { color: var(--diff-easy); background: rgba(0, 184, 163, 0.1); }
-.difficulty.medium { color: var(--diff-medium); background: rgba(255, 192, 30, 0.1); }
-.difficulty.hard { color: var(--diff-hard); background: rgba(255, 55, 95, 0.1); }
+.difficulty.easy {
+  color: var(--diff-easy);
+  background: rgba(0, 184, 163, 0.1);
+}
+.difficulty.medium {
+  color: var(--diff-medium);
+  background: rgba(255, 192, 30, 0.1);
+}
+.difficulty.hard {
+  color: var(--diff-hard);
+  background: rgba(255, 55, 95, 0.1);
+}
 
 .language {
   color: var(--text-muted);

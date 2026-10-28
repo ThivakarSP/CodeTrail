@@ -1,10 +1,7 @@
 import {
   saveConfig,
   getConfig,
-  saveStats,
   getStats,
-  resetStats,
-  getSyncHistory,
   addSyncHistoryEntry,
   getAnalytics,
 } from '../../utils/storage.js';
@@ -30,6 +27,12 @@ describe('Storage Utils', () => {
         repo: '',
         token: '',
         enabled: true,
+        groqApiKey: '',
+        groqModel: 'llama-3.3-70b-versatile',
+        customHeadings: '',
+        aiGenerateNotes: true,
+        aiGenerateComplexity: true,
+        aiCustomInstructions: '',
       });
     });
 
@@ -50,6 +53,12 @@ describe('Storage Utils', () => {
         repo: 'repo',
         token: 'token',
         enabled: false,
+        groqApiKey: '',
+        groqModel: 'llama-3.3-70b-versatile',
+        customHeadings: '',
+        aiGenerateNotes: true,
+        aiGenerateComplexity: true,
+        aiCustomInstructions: '',
       });
       // Verification of migration save (optional but good)
       expect(mockStorage.set).toHaveBeenCalledWith(
@@ -70,11 +79,18 @@ describe('Storage Utils', () => {
         callback();
       });
 
-      await saveConfig({ username: 'newuser', enabled: true });
+      await saveConfig({
+        username: 'newuser',
+        enabled: true,
+        groqModel: 'openai/gpt-oss-20b',
+        customHeadings: 'SQL, Pandas',
+      });
       expect(mockStorage.set).toHaveBeenCalledWith(
         expect.objectContaining({
           codetrail_username: 'newuser',
           codetrail_enabled: true,
+          codetrail_groq_model: 'openai/gpt-oss-20b',
+          codetrail_custom_headings: 'SQL, Pandas',
         }),
         expect.any(Function)
       );

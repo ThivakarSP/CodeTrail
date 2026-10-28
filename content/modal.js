@@ -17,13 +17,13 @@
       host.style.position = 'fixed';
       host.style.top = '0';
       host.style.right = '0';
-      
+
       // Read initial theme and listen for changes
       chrome.storage.local.get(['theme'], (result) => {
         const theme = result.theme || 'dark';
         host.setAttribute('data-theme', theme);
       });
-      
+
       chrome.storage.onChanged.addListener((changes, namespace) => {
         if (namespace === 'local' && changes.theme) {
           host.setAttribute('data-theme', changes.theme.newValue);

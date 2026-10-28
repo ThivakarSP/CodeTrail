@@ -25,7 +25,6 @@
   const { LANGUAGES, SELECTORS } = CT.Constants;
 
   let submissionInProgress = false;
-  let lastProcessedKey = null;
 
   // Initialization
   function init() {
@@ -34,7 +33,8 @@
       const btn = e.target.closest('button');
       if (
         btn &&
-        (btn.innerText.toLowerCase().includes('submit') ||
+        ((btn.innerText.toLowerCase().includes('submit') &&
+          !btn.innerText.toLowerCase().includes('submissions')) ||
           btn.getAttribute('data-e2e-locator') === 'console-submit-button')
       ) {
         sessionStorage.setItem('ct_last_submit_time', Date.now());
@@ -57,7 +57,7 @@
 
     // Debounce observer
     let timeout;
-    const observer = new MutationObserver((mutations) => {
+    const observer = new MutationObserver((_mutations) => {
       if (submissionInProgress) return;
 
       clearTimeout(timeout);
@@ -89,7 +89,7 @@
       // Don't auto-popup when just visiting old submission pages
       const lastSubmitTime = parseInt(sessionStorage.getItem('ct_last_submit_time') || '0', 10);
       const minsSinceSubmitClick = (Date.now() - lastSubmitTime) / 60000;
-      
+
       if (minsSinceSubmitClick > 5) {
         return;
       }
@@ -108,23 +108,6 @@
 
       submissionInProgress = true;
       console.log('CodeTrail: Detected accepted submission');
-
-      // Provide immediate UI feedback while waiting for DOM/API
-      CT.modal.injectModal();
-      CT.modal.showModal();
-      const contentEl = CT.modal.getElement('codetrail-content');
-      if (contentEl) {
-        contentEl.innerHTML = `
-            <div id="codetrail-loading">
-                <div class="spinner"></div>
-                <p class="text-muted" style="margin-top:10px;">Fetching submission...</p>
-            </div>
-            <div id="codetrail-form" style="display:none;">
-                <p id="codetrail-title"></p>
-                <p class="text-muted" style="margin-bottom:5px;">Opening sync window...</p>
-            </div>
-        `;
-      }
 
       // Wait a moment for DOM to settle
       setTimeout(processSubmission, 1000);
@@ -248,6 +231,19 @@
         return;
       }
 
+      const lastSubmitTime = parseInt(sessionStorage.getItem('ct_last_submit_time') || '0', 10);
+      const processedTime = parseInt(sessionStorage.getItem('ct_processed_submit_time') || '0', 10);
+
+      if (lastSubmitTime > 0 && lastSubmitTime === processedTime) {
+        CT.modal.hideModal();
+        submissionInProgress = false;
+        return;
+      }
+
+      if (lastSubmitTime > 0) {
+        sessionStorage.setItem('ct_processed_submit_time', lastSubmitTime);
+      }
+
       // 2.6 Prevent auto-popup when viewing old past submissions
       // If the API failed to return a timestamp, ageInMinutes will be NaN, which would bypass the check.
       // So we fallback to checking if they actually clicked the 'Submit' button in the last 2 minutes.
@@ -275,8 +271,6 @@
       }
       chrome.storage.local.set({ CT_SYNCED_CACHE: cache });
 
-      lastProcessedKey = currentKey;
-
       // Show processing modal now that we are sure it's a new submission
       CT.modal.showSyncModal({ title: 'Processing...' });
 
@@ -286,7 +280,7 @@
           type: 'OPEN_SYNC_WINDOW',
           data: data,
         },
-        (response) => {
+        (_response) => {
           if (chrome.runtime.lastError) {
             console.error('CodeTrail: Runtime error sending message', chrome.runtime.lastError);
             CT.modal.showError('Extension context invalidated. Please reload the page.');

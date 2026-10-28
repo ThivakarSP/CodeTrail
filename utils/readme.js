@@ -90,7 +90,12 @@ export function generateReadme(data) {
 
   // Add references section if any provided
   const hasRefs =
-    references && (references.youtube || references.timeComplexity || references.spaceComplexity || references.notes || references.additionalRefs);
+    references &&
+    (references.youtube ||
+      references.timeComplexity ||
+      references.spaceComplexity ||
+      references.notes ||
+      references.additionalRefs);
   if (hasRefs) {
     readme += `---\n\n`;
     readme += `## References\n\n`;
@@ -156,7 +161,15 @@ export function appendVersionToReadme(existingContent, submission, version) {
   versionSection += `*Solved on: ${date}*\n`;
 
   const refs = submission.references || {};
-  if (refs.youtube || refs.timeComplexity || refs.spaceComplexity || refs.notes || refs.approach || refs.method || refs.additionalRefs) {
+  if (
+    refs.youtube ||
+    refs.timeComplexity ||
+    refs.spaceComplexity ||
+    refs.notes ||
+    refs.approach ||
+    refs.method ||
+    refs.additionalRefs
+  ) {
     versionSection += `\n### References (v${version})\n\n`;
 
     const method = refs.method || refs.approach;

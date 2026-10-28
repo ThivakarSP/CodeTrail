@@ -1,7 +1,7 @@
 // CodeTrail Options Page Script
 // Handles configuration and connection testing using centralized storage
 
-import { getConfig, saveConfig, resetStats } from './utils/storage.js';
+import { getConfig, saveConfig } from './utils/storage.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
   const form = document.getElementById('settingsForm');
@@ -14,9 +14,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   const clearBtn = document.getElementById('clearBtn');
   const statusMessage = document.getElementById('statusMessage');
   const groqApiKeyInput = document.getElementById('groqApiKey');
+  const groqModelInput = document.getElementById('groqModel');
+  const customHeadingsInput = document.getElementById('customHeadings');
   const toggleGroqKeyBtn = document.getElementById('toggleGroqKey');
   const testGroqBtn = document.getElementById('testGroqBtn');
   const groqStatus = document.getElementById('groqStatus');
+  const aiGenerateNotesCheckbox = document.getElementById('aiGenerateNotes');
+  const aiGenerateComplexityCheckbox = document.getElementById('aiGenerateComplexity');
+  const aiCustomInstructionsTextarea = document.getElementById('aiCustomInstructions');
 
   // Load saved settings
   await loadSettings();
@@ -51,6 +56,62 @@ document.addEventListener('DOMContentLoaded', async () => {
     showStatus('API Key saved!', 'success');
   });
 
+  // Auto-save Groq Model on change/blur
+  groqModelInput?.addEventListener('change', async () => {
+    const groqModel = groqModelInput.value.trim() || 'llama-3.3-70b-versatile';
+    const config = await getConfig();
+    await saveConfig({ ...config, groqModel });
+    showStatus('Groq model saved!', 'success');
+  });
+
+  // Auto-save Custom Headings on change/blur
+  customHeadingsInput?.addEventListener('change', async () => {
+    const customHeadings = customHeadingsInput.value.trim();
+    const config = await getConfig();
+    await saveConfig({ ...config, customHeadings });
+    showStatus('Custom headings saved!', 'success');
+  });
+
+  async function fetchAndPopulateModels(apiKey) {
+    if (!apiKey) return { success: false };
+    try {
+      const response = await fetch('https://api.groq.com/openai/v1/models', {
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+        },
+      });
+      const data = await response.json().catch(() => ({}));
+      if (response.ok && data.data && Array.isArray(data.data)) {
+        const datalist = document.getElementById('groqModelList');
+        if (datalist) {
+          datalist.innerHTML = '';
+          data.data
+            .filter((m) => {
+              if (m.active === false) return false;
+              const id = (m.id || '').toLowerCase();
+              return (
+                !id.includes('whisper') &&
+                !id.includes('guard') &&
+                !id.includes('tts') &&
+                !id.includes('embed')
+              );
+            })
+            .map((m) => m.id)
+            .sort()
+            .forEach((modelId) => {
+              const opt = document.createElement('option');
+              opt.value = modelId;
+              datalist.appendChild(opt);
+            });
+        }
+        return { success: true };
+      }
+      return { success: false, error: data.error?.message || `Error ${response.status}` };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  }
+
   // Test Groq API Key
   testGroqBtn?.addEventListener('click', async () => {
     const groqApiKey = groqApiKeyInput.value.trim();
@@ -59,29 +120,20 @@ document.addEventListener('DOMContentLoaded', async () => {
       groqStatus.style.color = 'var(--error)';
       return;
     }
-    
+
     testGroqBtn.disabled = true;
     groqStatus.textContent = 'Testing...';
     groqStatus.style.color = 'var(--text-secondary)';
 
     try {
-      const response = await fetch('https://api.groq.com/openai/v1/models', {
-        headers: {
-          'Authorization': `Bearer ${groqApiKey}`,
-        }
-      });
-      
-      const data = await response.json().catch(() => ({}));
-      if (response.ok) {
-        groqStatus.textContent = '✅ API Key is valid!';
+      const result = await fetchAndPopulateModels(groqApiKey);
+      if (result && result.success) {
+        groqStatus.textContent = '✅ API Key is valid! Loaded available models.';
         groqStatus.style.color = 'var(--success)';
       } else {
-        groqStatus.textContent = `❌ Error ${response.status}: ${data.error?.message || 'Invalid request'}`;
+        groqStatus.textContent = `❌ ${result?.error || 'Invalid API key or network error'}`;
         groqStatus.style.color = 'var(--error)';
       }
-    } catch (err) {
-      groqStatus.textContent = `❌ Network Error: ${err.message}`;
-      groqStatus.style.color = 'var(--error)';
     } finally {
       testGroqBtn.disabled = false;
     }
@@ -111,7 +163,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (config.username) usernameInput.value = config.username;
     if (config.repo) repoInput.value = config.repo;
     if (config.token) tokenInput.value = config.token;
-    if (config.groqApiKey) groqApiKeyInput.value = config.groqApiKey;
+    if (config.groqApiKey) {
+      groqApiKeyInput.value = config.groqApiKey;
+      fetchAndPopulateModels(config.groqApiKey);
+    }
+    if (config.groqModel) groqModelInput.value = config.groqModel;
+    else groqModelInput.value = 'llama-3.3-70b-versatile';
+    if (config.customHeadings) customHeadingsInput.value = config.customHeadings;
+    if (config.aiCustomInstructions)
+      aiCustomInstructionsTextarea.value = config.aiCustomInstructions;
+    aiGenerateNotesCheckbox.checked = config.aiGenerateNotes !== false;
+    aiGenerateComplexityCheckbox.checked = config.aiGenerateComplexity !== false;
   }
 
   // Save settings to storage
@@ -120,6 +182,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     const repo = repoInput.value.trim();
     const token = tokenInput.value.trim();
     const groqApiKey = groqApiKeyInput.value.trim();
+    const groqModel = groqModelInput.value.trim() || 'llama-3.3-70b-versatile';
+    const customHeadings = customHeadingsInput.value.trim();
+    const aiCustomInstructions = aiCustomInstructionsTextarea.value.trim();
+    const aiGenerateNotes = aiGenerateNotesCheckbox.checked;
+    const aiGenerateComplexity = aiGenerateComplexityCheckbox.checked;
 
     if (!username || !repo || !token) {
       showStatus('Please fill in all fields', 'error');
@@ -153,6 +220,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         repo,
         token,
         groqApiKey,
+        groqModel,
+        customHeadings,
+        aiCustomInstructions,
+        aiGenerateNotes,
+        aiGenerateComplexity,
       });
 
       showStatus('Settings saved successfully!', 'success');
@@ -267,6 +339,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     repoInput.value = '';
     tokenInput.value = '';
     groqApiKeyInput.value = '';
+    groqModelInput.value = 'llama-3.3-70b-versatile';
+    customHeadingsInput.value = '';
+    aiCustomInstructionsTextarea.value = '';
+    aiGenerateNotesCheckbox.checked = true;
+    aiGenerateComplexityCheckbox.checked = true;
 
     showStatus('All data cleared', 'success');
   }

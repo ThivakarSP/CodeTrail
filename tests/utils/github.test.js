@@ -1,4 +1,4 @@
-import { pushToGitHub, checkFileExists, testConnection } from '../../utils/github.js';
+import { checkFileExists, testConnection } from '../../utils/github.js';
 
 // Mock fetch
 const mockFetch = global.fetch;

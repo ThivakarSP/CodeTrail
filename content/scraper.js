@@ -1,8 +1,6 @@
 (function (window) {
   window.CodeTrail = window.CodeTrail || {};
 
-  const CodeTrail = window.CodeTrail;
-
   // Helper to find first matching element from array of selectors
   function queryFirst(selectors) {
     if (!selectors) return null;
